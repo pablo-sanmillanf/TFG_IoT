@@ -12,6 +12,55 @@
 #include "i2c_master.h" // Module header
 
 /* Private typedef -----------------------------------------------------------*/
+struct bme688_calib_temperature_sensor
+{
+  uint16_t par_t1;
+  int16_t par_t2;
+  int8_t par_t3;
+};
+
+struct bme688_calib_pressure_sensor
+{
+  uint16_t par_p1;
+  int16_t par_p2;
+  int8_t par_p3;
+  int16_t par_p4;
+  int16_t par_p5;
+  int8_t par_p6;
+  int8_t par_p7;
+  int16_t par_p8;
+  int16_t par_p9;
+  uint8_t par_p10;
+};
+
+struct bme688_calib_humidity_sensor
+{
+  uint16_t par_h1;
+  uint16_t par_h2;
+  int8_t par_h3;
+  int8_t par_h4;
+  int8_t par_h5;
+  uint8_t par_h6;
+  int8_t par_h7;
+};
+
+struct bme688_calib_gas_sensor
+{
+  int8_t par_g1;
+  int16_t par_g2;
+  int8_t par_g3;
+  uint8_t res_heat_range;
+  int8_t res_heat_val;
+};
+
+struct bme688_calib_sensor
+{
+  bme688_calib_temperature_sensor temperature;
+  bme688_calib_pressure_sensor pressure;
+  bme688_calib_humidity_sensor humidity;
+  bme688_calib_gas_sensor gas;
+};
+  
 /* Private variables----------------------------------------------------------*/
 int fd;
 struct i2c_rdwr_ioctl_data packets;
@@ -29,15 +78,18 @@ struct i2c_msg messages[2];
  * @return 0 if success, -1 if error.
  */
 I2C_Master::start (int i2c_device) {
-  //Open file descriptor
-  char i2cFile[15];
-  sprintf(i2cFile, "/dev/i2c-%d", i2c_device);
-  
-  fd = open(i2cFile, O_RDWR);
-  
-  if(fd != -1){
-    return 0;
+  if(fd == 0){
+    //Open file descriptor
+    char i2cFile[15];
+    sprintf(i2cFile, "/dev/i2c-%d", i2c_device);
+    
+    fd = open(i2cFile, O_RDWR);
+    
+    if(fd != -1){
+      return 0;
+    }
   }
+  
   return fd;
 }
 
@@ -106,5 +158,9 @@ int I2C_Master::read_msg(uint8_t addr, uint8_t read_reg, uint8_t data[], uint8_t
  * @return 0 if success, -1 if error.
  */
 int I2C_Master::end(){
-  return close(fd);
+  int status = close(fd);
+  if(status != -1){
+    fd = 0;
+  }
+  return status;
 }

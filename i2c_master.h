@@ -21,14 +21,15 @@
     #include <linux/i2c-dev.h>
     #include <linux/i2c.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
   /* Exported variables --------------------------------------------------------*/
   /* Exported types ------------------------------------------------------------*/
   /* Exported constants --------------------------------------------------------*/
   /* Exported macro ------------------------------------------------------------*/
   /* Exported Functions --------------------------------------------------------*/
-#ifdef __cplusplus
-extern "C" {
-#endif
+
     namespace I2C_Master{
       /**
        * @brief Starts the I2C device to allow I2C comunnications.
@@ -38,7 +39,7 @@ extern "C" {
        *
        * @return 0 if success, -1 if error.
        */
-      extern int start (int i2c_device);
+      int start (int i2c_device);
       
       /**
        * @brief Sends I2C data of length `data_length` to the slave with 
