@@ -30,7 +30,9 @@ extern "C" {
   /* Exported macro ------------------------------------------------------------*/
   /* Exported Functions --------------------------------------------------------*/
 
+#ifdef __cplusplus
     namespace I2C_Master{
+#endif
       /**
        * @brief Starts the I2C device to allow I2C comunnications.
        * 
@@ -73,8 +75,10 @@ extern "C" {
        * @return 0 if success, -1 if error.
        */
       int end();
-      
+
+#ifdef __cplusplus 
     }
+#endif
     
 #ifdef __cplusplus
 }
