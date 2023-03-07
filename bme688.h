@@ -1,25 +1,19 @@
 /**
   ******************************************************************************
-  * @file   i2c_master.h
+  * @file   bme688.h
   * @author Pablo San Millán Fierro (pablo.sanmillanf@alumnos.upm.es)
-  * @brief  I2C Handler Module header.
+  * @brief  BME688 Gas Sensor Handler Module header.
   *
   * @note   End-of-degree work.
-  *         This module manages the I2C communications
+  *         This module manages the BME688 Gas Sensor.
   ******************************************************************************
 */
 
-#ifndef __I2C_MASTER_H__
-#define __I2C_MASTER_H__
+#ifndef __BME688_H__
+#define __BME688_H__
 
   /* Includes ------------------------------------------------------------------*/
     #include <stdint.h>
-    #include <stdio.h>
-    #include <fcntl.h>
-    #include <unistd.h>
-    #include <sys/ioctl.h>
-    #include <linux/i2c-dev.h>
-    #include <linux/i2c.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -30,9 +24,7 @@ extern "C" {
   /* Exported macro ------------------------------------------------------------*/
   /* Exported Functions --------------------------------------------------------*/
 
-#ifdef __cplusplus
-    namespace I2C_Master{
-#endif
+    namespace BME688{
       /**
        * @brief Starts the I2C device to allow I2C comunnications.
        * 
@@ -75,10 +67,8 @@ extern "C" {
        * @return 0 if success, -1 if error.
        */
       int end();
-
-#ifdef __cplusplus 
+      
     }
-#endif
     
 #ifdef __cplusplus
 }
