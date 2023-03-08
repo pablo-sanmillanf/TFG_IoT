@@ -1,4 +1,5 @@
 /**
+  ******************************************************************************
   * @file   i2c_master.h
   * @author Pablo San Millán Fierro (pablo.sanmillanf@alumnos.upm.es)
   * @brief  I2C Handler Module header.
@@ -84,4 +85,3 @@ extern "C" {
 #endif
 
 #endif
-

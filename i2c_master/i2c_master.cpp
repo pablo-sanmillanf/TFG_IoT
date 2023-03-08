@@ -36,12 +36,12 @@ int I2C_Master::start (int i2c_device) {
     
     fd = open(i2cFile, O_RDWR);
     
-    if(fd != -1){
-      return 0;
+    if(fd == -1){
+      return -1;
     }
   }
   
-  return fd;
+  return 0;
 }
 
 
