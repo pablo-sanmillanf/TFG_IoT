@@ -20,20 +20,29 @@
 
 #define CONF_ACC_GYR_REG  0x10
 
-#define ACC_SCALE_RANGE 2
-#define GYR_SCALE_RANGE 250
+#define TEMP_DATA_REG 0x20
+#define GYR_DATA_REG  0x22
+#define ACC_DATA_REG  0x28
+
+#define ODR_MASK 0xF0
+#define ACC_FSR_MASK 0x0C
+#define GYR_FSR_MASK 0x0E
+
 /* Private variables----------------------------------------------------------*/
 /* Private function prototypes -----------------------------------------------*/
+static int get_values(float *x_value, float *y_value, float *z_value, int reg, int scale_range);
 static float convert_value(int16_t value, int scale_range);
 /* Functions -----------------------------------------------------------------*/
 
 /**
- * @brief Starts the LSM6DSOX Sensor with the given configurations.
+ * @brief Class constructor. Starts the LSM6DSOX Sensor with the given configurations.
  * 
- *
- * @return 0 if success, -1 if error.
+ * @param[in] odr_acc Value of ODR for the accelerometer.
+ * @param[in] odr_gyr Value of ODR for the gyroscope.
+ * @param[in] fsr_acc Value of FSR for the accelerometer.
+ * @param[in] fsr_gyr Value of FSR for the gyroscope.
  */
-int LSM6DSOX::init () {
+LSM6DSOX::LSM6DSOX(uint8_t odr_acc, uint8_t odr_gyr, uint8_t fsr_acc, uint8_t fsr_gyr) {
   int len = 3;
   uint8_t data[len];
   
@@ -43,13 +52,72 @@ int LSM6DSOX::init () {
   //Reset
   data[0] = RESET_REG;
   data[1] = RESET_VALUE;  
-  if(I2C_Master::write_msg(ADR_LSM, data,  2) == -1)
-    return -1;
+  I2C_Master::write_msg(ADR_LSM, data,  2);
+  
+  fsr_odr_reg_acc = odr_acc | fsr_acc;
+  fsr_odr_reg_gyr = odr_gyr | fsr_gyr;
+  //Configure accelerometer and gyroscope
+  data[0] = CONF_ACC_GYR_REG;
+  data[1] = fsr_odr_reg_acc;
+  data[2] = fsr_odr_reg_gyr;
+  I2C_Master::write_msg(ADR_LSM, data,  3);
+}
+
+/**
+ * @brief Class destructor. Free all the associated resources.
+ */
+LSM6DSOX::~LSM6DSOX() {
+  I2C_Master::end();
+}
+
+/**
+ * @brief Sets the Full Scale Ranges for the gyroscope and the accelerometer according
+ *        to the defines listed in the module header.
+ * 
+ * @param[in] fsr_acc Value of FSR for the accelerometer.
+ * @param[in] fsr_gyr Value of FSR for the gyroscope.
+ *
+ * @return 0 if success, -1 if error.
+ */
+int LSM6DSOX::set_fsr(uint8_t fsr_acc, uint8_t fsr_gyr) {
+  int len = 3;
+  uint8_t data[len];
+  
+  fsr_odr_reg_acc = (fsr_odr_reg_acc & (~ACC_FSR_MASK)) | fsr_acc;
+  fsr_odr_reg_gyr = (fsr_odr_reg_gyr & (~GYR_FSR_MASK)) | fsr_gyr;
   
   //Configure accelerometer and gyroscope
   data[0] = CONF_ACC_GYR_REG;
-  data[1] = 0x30;
-  data[2] = 0x30;
+  data[1] = fsr_odr_reg_acc;
+  data[2] = fsr_odr_reg_gyr;
+  
+  if(I2C_Master::write_msg(ADR_LSM, data,  3) == -1)
+    return -1;
+  
+  return 0;
+}
+
+/**
+ * @brief Sets the Output Data Rate for the gyroscope and the accelerometer according
+ *        to the defines listed in the module header.
+ * 
+ * @param[in] odr_acc Value of ODR for the accelerometer.
+ * @param[in] odr_gyr Value of ODR for the gyroscope.
+ *
+ * @return 0 if success, -1 if error.
+ */
+int LSM6DSOX::set_odr(uint8_t odr_acc, uint8_t odr_gyr) {
+  int len = 3;
+  uint8_t data[len];
+  
+  fsr_odr_reg_acc = (fsr_odr_reg_acc & (~ODR_MASK)) | odr_acc;
+  fsr_odr_reg_gyr = (fsr_odr_reg_gyr & (~ODR_MASK)) | odr_gyr;
+  
+  //Configure accelerometer and gyroscope
+  data[0] = CONF_ACC_GYR_REG;
+  data[1] = fsr_odr_reg_acc;
+  data[2] = fsr_odr_reg_gyr;
+  
   if(I2C_Master::write_msg(ADR_LSM, data,  3) == -1)
     return -1;
   
@@ -66,7 +134,7 @@ int LSM6DSOX::init () {
 float LSM6DSOX::get_temperature(){
   int len = 2;
   uint8_t data[len];
-  if(I2C_Master::read_msg(ADR_LSM, 0x20, data, len) == -1)
+  if(I2C_Master::read_msg(ADR_LSM, TEMP_DATA_REG, data, len) == -1)
     return 0;
    
   return (float)((int16_t)(data[1] << 8 | data[0])) / 256.0 + 25.0;
@@ -87,17 +155,23 @@ float LSM6DSOX::get_temperature(){
  * @return 0 if success, -1 if error.
  */
 int LSM6DSOX::get_acc_values(float *x_value, float *y_value, float *z_value){
-
-  int len = 6;
-  uint8_t data[len];
-  if(I2C_Master::read_msg(ADR_LSM, 0x28, data, len) == -1)
-    return -1;
   
-  *x_value = convert_value(data[1] << 8 | data[0], ACC_SCALE_RANGE);
-  *y_value = convert_value(data[3] << 8 | data[2], ACC_SCALE_RANGE);
-  *z_value = convert_value(data[5] << 8 | data[4], ACC_SCALE_RANGE);
+  uint8_t scale_range = fsr_odr_reg_acc & ACC_FSR_MASK;
   
-  return 0;
+  if(scale_range == ACC_16_G_FSR){
+    return get_values(x_value, y_value, z_value, ACC_DATA_REG, 16);
+  }
+  else if(scale_range == ACC_8_G_FSR){
+    return get_values(x_value, y_value, z_value, ACC_DATA_REG, 8);
+  }
+  else if(scale_range == ACC_4_G_FSR){
+    return get_values(x_value, y_value, z_value, ACC_DATA_REG, 4);
+  }
+  else if(scale_range == ACC_2_G_FSR){
+    return get_values(x_value, y_value, z_value, ACC_DATA_REG, 2);
+  }
+  
+  return -1;
 }
 
 
@@ -115,19 +189,57 @@ int LSM6DSOX::get_acc_values(float *x_value, float *y_value, float *z_value){
  */
 int LSM6DSOX::get_gyr_values(float *x_value, float *y_value, float *z_value){
 
-  int len = 6;
-  uint8_t data[len];
-  if(I2C_Master::read_msg(ADR_LSM, 0x22, data, len) == -1)
-    return -1;
+  uint8_t scale_range = fsr_odr_reg_gyr & GYR_FSR_MASK;
   
-  *x_value = convert_value(data[1] << 8 | data[0], GYR_SCALE_RANGE);
-  *y_value = convert_value(data[3] << 8 | data[2], GYR_SCALE_RANGE);
-  *z_value = convert_value(data[5] << 8 | data[4], GYR_SCALE_RANGE);
+  if(scale_range == GYR_2000_DPS_FSR){
+    return get_values(x_value, y_value, z_value, GYR_DATA_REG, 2000);
+  }
+  else if(scale_range == GYR_1000_DPS_FSR){
+    return get_values(x_value, y_value, z_value, GYR_DATA_REG, 1000);
+  }
+  else if(scale_range == GYR_500_DPS_FSR){
+    return get_values(x_value, y_value, z_value, GYR_DATA_REG, 500);
+  }
+  else if(scale_range == GYR_250_DPS_FSR){
+    return get_values(x_value, y_value, z_value, GYR_DATA_REG, 250);
+  }
+  else if(scale_range == GYR_125_DPS_FSR){
+    return get_values(x_value, y_value, z_value, GYR_DATA_REG, 125);
+  }
   
-  return 0;
+  return -1;
 }
 
 
+/* Private functions ---------------------------------------------------------*/
+
+/**
+ * @brief Gets values from the gyroscope or the accelerometer from the 3 axis.
+ * 
+ * @param[out] x_value     Pointer to the location where the x-axis value is to be 
+ *                         saved.
+ * @param[out] y_value     Pointer to the location where the y-axis value is to be 
+ *                         saved.
+ * @param[out] z_value     Pointer to the location where the z-axis value is to be 
+ *                         saved.
+ * @param[in] reg          First I2C register to read from.
+ * @param[in] scale_range  Scale range of the values.
+ *
+ * @return 0 if success, -1 if error.
+ */
+static int get_values(float *x_value, float *y_value, float *z_value, int reg, int scale_range){
+
+  int len = 6;
+  uint8_t data[len];
+  if(I2C_Master::read_msg(ADR_LSM, reg, data, len) == -1)
+    return -1;
+    
+  *x_value = convert_value(data[1] << 8 | data[0], scale_range);
+  *y_value = convert_value(data[3] << 8 | data[2], scale_range);
+  *z_value = convert_value(data[5] << 8 | data[4], scale_range);
+  
+  return 0;
+}
 
 
 /**
@@ -144,3 +256,5 @@ static float convert_value(int16_t value, int scale_range){
 
   return result;
 }
+
+
