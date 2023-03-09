@@ -14,6 +14,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include <stdint.h>
+#include "../i2c_master/i2c_master.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -52,8 +53,8 @@ class LSM6DSOX{
     uint8_t fsr_odr_reg_acc, fsr_odr_reg_gyr;
   public:
     //Non complete constructors
-    LSM6DSOX () : LSM6DSOX(LSM6DSOX_OFF_ODR, LSM6DSOX_OFF_ODR, ACC_2_G_FSR, GYR_250_DPS_FSR);
-    LSM6DSOX (uint8_t odr_acc, uint8_t odr_gyr) : LSM6DSOX(odr_acc, odr_gyr, LSM6DSOX_OFF_ODR, ACC_2_G_FSR, GYR_250_DPS_FSR);
+    LSM6DSOX () : LSM6DSOX(LSM6DSOX_OFF_ODR, LSM6DSOX_OFF_ODR, ACC_2_G_FSR, GYR_250_DPS_FSR) {};
+    LSM6DSOX (uint8_t odr_acc, uint8_t odr_gyr) : LSM6DSOX(odr_acc, odr_gyr, ACC_2_G_FSR, GYR_250_DPS_FSR) {};
     
     /**
      * @brief Class constructor. Starts the LSM6DSOX Sensor with the given configurations.
@@ -126,7 +127,7 @@ class LSM6DSOX{
      * @return 0 if success, -1 if error.
      */
     int get_gyr_values(float *x_value, float *y_value, float *z_value);
-}
+};
 
 
 #ifdef __cplusplus

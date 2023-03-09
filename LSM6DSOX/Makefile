@@ -1,6 +1,6 @@
 DEBUG= -O2 #Debugging Level
 
-CC= gcc #Compiler command
+CC= g++ #Compiler command
 INCLUDE= -I/usr/local/include #Include directory
 CFLAGS= $(DEBUG) -Wall $(INCLUDE) -Winline #Compiler Flags
 LDFLAGS= -L/usr/local/lib #Linker Flags

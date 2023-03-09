@@ -10,7 +10,6 @@
 */
 /* Includes ------------------------------------------------------------------*/
 #include "LSM6DSOX.h" // Module header
-#include "../i2c_master/i2c_master.h"
 
 /* Private typedef -----------------------------------------------------------*/
 #define ADR_LSM  0x6A
