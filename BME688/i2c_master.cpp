@@ -10,6 +10,12 @@
 */
 /* Includes ------------------------------------------------------------------*/
 #include "i2c_master.h" // Module header
+#include <stdio.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/ioctl.h>
+#include <linux/i2c-dev.h>
+#include <linux/i2c.h>
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private variables----------------------------------------------------------*/
