@@ -14,12 +14,6 @@
 
   /* Includes ------------------------------------------------------------------*/
     #include <stdint.h>
-    #include <stdio.h>
-    #include <fcntl.h>
-    #include <unistd.h>
-    #include <sys/ioctl.h>
-    #include <linux/i2c-dev.h>
-    #include <linux/i2c.h>
 
 #ifdef __cplusplus
 extern "C" {
