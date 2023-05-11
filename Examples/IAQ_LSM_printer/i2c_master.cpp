@@ -10,18 +10,20 @@
 */
 /* Includes ------------------------------------------------------------------*/
 #include "i2c_master.h" // Module header
-#include <stdio.h>
+#include <cstdio>
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
 #include <linux/i2c-dev.h>
 #include <linux/i2c.h>
+#include <mutex>
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private variables----------------------------------------------------------*/
 static int fd;
 static struct i2c_rdwr_ioctl_data packets;
 static struct i2c_msg messages[2];
+static std::mutex mutex;
 
 /* Private function prototypes -----------------------------------------------*/
 /* Functions -----------------------------------------------------------------*/
@@ -38,7 +40,7 @@ int I2C_Master::start (int i2c_device) {
   if(fd == 0){
     //Open file descriptor
     char i2cFile[15];
-    sprintf(i2cFile, "/dev/i2c-%d", i2c_device);
+    std::sprintf(i2cFile, "/dev/i2c-%d", i2c_device);
     
     fd = open(i2cFile, O_RDWR);
     
@@ -62,6 +64,11 @@ int I2C_Master::start (int i2c_device) {
  * @return non negative value if success, -1 if error.
  */
 int I2C_Master::write_msg(uint8_t addr, uint8_t data[], uint8_t data_length){
+  int result;
+
+  //Make thread-safe.
+  mutex.lock();
+
   //Write configuration registers
   messages[0].addr = addr;
   messages[0].flags = 0;
@@ -72,7 +79,11 @@ int I2C_Master::write_msg(uint8_t addr, uint8_t data[], uint8_t data_length){
   packets.nmsgs = 1;
   //Send message(s)
   //I2C_RDWR-> write/read i2c
-  return ioctl(fd, I2C_RDWR, &packets);  
+  result = ioctl(fd, I2C_RDWR, &packets);
+
+  mutex.unlock();
+
+  return result;
 }
 
 
@@ -90,6 +101,11 @@ int I2C_Master::write_msg(uint8_t addr, uint8_t data[], uint8_t data_length){
  * @return non negative value if success, -1 if error.
  */
 int I2C_Master::read_msg(uint8_t addr, uint8_t read_reg, uint8_t data[], uint8_t data_length){
+  int result;
+
+  //Make thread-safe.
+  mutex.lock();
+
   //Write in th I2C device to point to reading registers
   messages[0].addr = addr;
   messages[0].flags = 0;
@@ -105,7 +121,11 @@ int I2C_Master::read_msg(uint8_t addr, uint8_t read_reg, uint8_t data[], uint8_t
   packets.nmsgs = 2;
   //Send message(s)
   //I2C_RDWR-> write/read i2c
-  return ioctl(fd, I2C_RDWR, &packets);
+  result = ioctl(fd, I2C_RDWR, &packets);
+
+  mutex.unlock();
+
+  return result;
 }
 
 
