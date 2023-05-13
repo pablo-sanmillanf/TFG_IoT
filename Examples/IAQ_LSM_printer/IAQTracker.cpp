@@ -54,7 +54,7 @@ void IAQTracker::init(float hum_corr_factor, int burn_in_cycles, int calib_sampl
   *
   */
 IAQTracker::IAQTracker(){
-  this->init(0.43, 300, 100, 3600);
+  this->init(0.827, 300, 100, 3600);
 }
 
 
