@@ -225,7 +225,7 @@ int CustomGPIO::GPIO::waits(GPIO *gpios, int gpios_len, int time_ms){
       poll_data[i].events = POLLPRI;
       poll_data[i].revents = 0;
 
-      lseek(poll_data[i].fd, 0, SEEK_SET); // Clear pending interrupts.
+      gpios[i].read(); // Clear pending interrupts with a dummy read.
     }
     else{
       return -1;
@@ -241,6 +241,7 @@ int CustomGPIO::GPIO::waits(GPIO *gpios, int gpios_len, int time_ms){
 
   for(int i = 0; i < gpios_len; i++){
     if(poll_data[i].revents & POLLPRI){
+      gpios[i].read(); // Clear interrupt with a dummy read.
       return i;
     }
   }
@@ -263,163 +264,3 @@ CustomGPIO::GPIO::~GPIO(){
   close(fd);
 }
 
-/*
-
-static int GPIOExport(int pin);
-static int GPIOUnexport(int pin);
-static int GPIODirection(int pin, int dir);
-static int GPIOInterruptMode(int pin, int interrupt_mode);
-static int GPIOBlockingRead(int pin, int time_ms);
-static int GPIORead(int pin);
-static int GPIOWrite(int pin, bool value);
-
-
-static int GPIOExport(int pin){
-  int exp_fd;
-
-  exp_fd = open("/sys/class/gpio/export", O_WRONLY);
-  if (exp_fd == -1)
-    return -1;
-  std::string pin_string = std::to_string(pin);
-
-  write(exp_fd, pin_string.c_str(), pin_string.size());
-  close(exp_fd);
-
-  return 0;
-}
-
-
-static int GPIOUnexport(int pin){
-  int fd;
-
-  fd = open("/sys/class/gpio/unexport", O_WRONLY);
-  if (fd == -1)
-    return -1;
-  std::string pin_string = std::to_string(pin);
-
-  write(fd, pin_string.c_str(), pin_string.size());
-  close(fd);
-
-  return 0;
-}
-
-static int GPIODirection(int pin, int dir){
-  int dir_fd;
-
-  std::string dir_path = "/sys/class/gpio/gpio" + std::to_string(pin) + "/direction";
-
-  dir_fd = open(dir_path.c_str(), O_WRONLY);
-  if (dir_fd == -1)
-    return -1;
-
-  if(dir == CustomGPIO::GPIO_IN){
-    if(write(dir_fd, "in", 2) == -1)
-      return -1;
-  }
-  else{
-    if(write(dir_fd, "out", 3) == -1)
-      return -1;
-  }
-
-  close(dir_fd);
-  return 0;
-}
-
-
-static int GPIOInterruptMode(int pin, int interrupt_mode){
-  int fd;
-
-  std::string result = "/sys/class/gpio/gpio" + std::to_string(pin) + "/edge";
-
-  fd = open(result.c_str(), O_WRONLY);
-  if (fd == -1)
-    return -1;
-
-  if(interrupt_mode == CustomGPIO::GPIO_INT_RISING){
-    if(write(fd, "rising", 6) == -1)
-      return -1;
-  }
-  else if(interrupt_mode == CustomGPIO::GPIO_INT_FALLING){
-    if(write(fd, "falling", 7) == -1)
-      return -1;
-  }
-  else if(interrupt_mode == CustomGPIO::GPIO_INT_BOTH){
-    if(write(fd, "both", 4) == -1)
-      return -1;
-  }
-  else{                       //(interrupt_mode == GPIO_INT_NONE)
-    if(write(fd, "none", 4) == -1)
-      return -1;
-  }
-
-  close(fd);
-  return(0);
-}
-
-
-static int GPIOBlockingRead(int pin, int time_ms){
-  char reg_value[3];
-  pollfd poll_data;
-
-  std::string result = "/sys/class/gpio/gpio" + std::to_string(pin) + "/value";
-
-  poll_data.fd = open(result.c_str(), O_RDONLY);
-  if (poll_data.fd == -1)
-    return -1;
-
-  poll_data.events = POLLPRI | POLLERR;
-  if(poll(&poll_data, 1, time_ms) == -1)
-    return -1;
-
-  if(!(poll_data.revents & POLLPRI))
-      return -1;
-
-  if(lseek(poll_data.fd, 0, SEEK_SET) == -1)
-    return -1;
-
-  if (read(poll_data.fd, reg_value, 3) == -1)
-    return -1;
-
-  close(poll_data.fd);
-
-  return atoi(reg_value);
-}
-
-
-static int GPIORead(int pin){
-  char reg_value[3];
-  int fd;
-  std::string result = "/sys/class/gpio/gpio" + std::to_string(pin) + "/value";
-
-  fd = open(result.c_str(), O_RDWR);
-  if (fd == -1)
-    return -1;
-
-  if (read(fd, reg_value, 3) == -1)
-    return -1;
-
-  close(fd);
-
-  return atoi(reg_value);
-}
-
-static int GPIOWrite(int pin, bool value){
-  int fd;
-  std::string result = "/sys/class/gpio/gpio" + std::to_string(pin) + "/value";
-
-  fd = open(result.c_str(), O_RDWR);
-  if (fd == -1)
-    return -1;
-
-  if(value){
-    if(write(fd, "1", 1) == -1)
-      return -1;
-  }
-  else{
-    if(write(fd, "0", 1) == -1)
-      return -1;
-  }
-
-  close(fd);
-  return(0);
-}*/

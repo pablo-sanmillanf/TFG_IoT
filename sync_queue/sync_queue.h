@@ -57,6 +57,18 @@ public:
     queue.pop();
     return item;
   }
+
+
+  /**
+   * @brief Return the number of elements in the queue.
+   *
+   * @return The number of elements.
+   *
+   */
+  int size(){
+    std::unique_lock<std::mutex> lock(mutex);
+    return queue.size();
+  }
 };
 
 

@@ -89,12 +89,13 @@ class BME688{
   bme688_calib_sensor calibs;
   bme688_oversamplings ovsp;
   float amb_temp;
+  float temp_offset;
 public:
 
   /**
     * @brief Class constructor. Sets the ambient temperature.
     */
-  BME688(float amb_temp): amb_temp(amb_temp){};
+  BME688(float amb_temp, float temp_offset): amb_temp(amb_temp), temp_offset(temp_offset){};
 
   /**
     * @brief Starts the module and the communications with the BME sensor and obtain the calibration parameters from the sensor.
@@ -102,6 +103,15 @@ public:
     * @return 0 if success, -1 if error.
     */
   int init();
+
+  /**
+    * @brief Set a new temperature offset to be subtracted to the compensated temperature. This will also
+    *        affect to the humidity measures.
+    *
+    * @param[in] temp_offset The new temperature offset to be subtracted to the compensated temperature.
+    *
+    */
+  void set_temp_offset(float temp_offset);
 
   /**
     * @brief Set the oversamplings for the temperature, pressure and humidity.

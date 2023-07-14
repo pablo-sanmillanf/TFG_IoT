@@ -102,14 +102,15 @@
 /* Private typedef -----------------------------------------------------------*/
 /* Private variables----------------------------------------------------------*/
 /* Private function prototypes -----------------------------------------------*/
-static int get_data_forced_mode(float *temperature, float *pressure, float *humidity, float *gas_resistance, bme688_calib_sensor *calibs);
+static int get_data_forced_mode(float *temperature, float *pressure, float *humidity, float *gas_resistance,
+                                float temp_offset, bme688_calib_sensor *calibs);
 static int set_operation_mode(uint8_t mode);
 static uint32_t get_measure_duration(uint8_t mode, bme688_oversamplings ovsp);
 static int get_calibs(bme688_calib_sensor *calibs);
 static int set_heat_gas_confs(uint8_t mode, float target_temp, float amb_temp, uint16_t ms, bme688_calib_gas_sensor gas_cals);
 static uint8_t calc_res_heat_x(float target_temp, float amb_temp, bme688_calib_gas_sensor gas_cals);
 static uint8_t calc_gas_wait_x(uint16_t ms);
-static float calc_compensated_temperature(float temp_adc, bme688_calib_sensor *calibs);
+static float calc_compensated_temperature(float temp_adc, float temp_offset, bme688_calib_sensor *calibs);
 static float calc_compensated_pressure(float press_adc, bme688_calib_sensor *calibs);
 static float calc_compensated_humidity(float hum_adc, bme688_calib_sensor *calibs);
 static float calc_compensated_gas_resistance(uint16_t gas_adc, uint8_t gas_range);
@@ -141,6 +142,17 @@ int BME688::init(){
     return -1;
 
   return get_calibs(&calibs);
+}
+
+/**
+  * @brief Set a new temperature offset to be subtracted to the compensated temperature. This will also
+  *        affect to the humidity measures.
+  *
+  * @param[in] temp_offset The new temperature offset to be subtracted to the compensated temperature.
+  *
+  */
+void BME688::set_temp_offset(float temp_offset){
+  this->temp_offset = temp_offset;
 }
 
 
@@ -225,7 +237,7 @@ int BME688::get_data_one_measure(float *temperature, float *pressure, float *hum
 
   usleep(get_measure_duration(FORCED_OP_MODE, ovsp) + 100000);
 
-  return get_data_forced_mode(temperature, pressure, humidity, gas_resistance, &calibs);
+  return get_data_forced_mode(temperature, pressure, humidity, gas_resistance, temp_offset, &calibs);
 }
 
 
@@ -290,7 +302,7 @@ static uint32_t get_measure_duration(uint8_t mode, bme688_oversamplings ovsp){
 
 
 /**
-  * @brief Obtain a measure from all the metris of the BME sensor in the forced mode. If a specific metric is not needed,
+  * @brief Obtain a measure from all the metrics of the BME sensor in the forced mode. If a specific metric is not needed,
   * pass NULL as parameter.
   *
   * @param[out] temperature The temperature obtained from the sensor.
@@ -298,12 +310,15 @@ static uint32_t get_measure_duration(uint8_t mode, bme688_oversamplings ovsp){
   * @param[out] humidity The humidity obtained from the sensor.
   * @param[out] gas_resistance The gas resistance of the hot plate obtained from the sensor. Greater values indicates good
   *                            quality air, smaller values indicates bad quality air.
+  * @param[in] temp_offset A temperature offset to be subtracted to the resulting temperature. This parameter will compensate
+  *                        all the offset added by PCB temperature, sensor element self-heating, etc.
   * @param[in] calibs A structure with the calibration parameters for the calculation of the compensated metrics.
   *
   *
   * @return 0 if success, -1 if error.
   */
-static int get_data_forced_mode(float *temperature, float *pressure, float *humidity, float *gas_resistance, bme688_calib_sensor *calibs){
+static int get_data_forced_mode(float *temperature, float *pressure, float *humidity, float *gas_resistance,
+                                float temp_offset, bme688_calib_sensor *calibs){
   uint8_t buffer[LEN_DATA_FIELD_0];
   uint8_t gas_range;
   uint32_t adc_temp;
@@ -318,7 +333,7 @@ static int get_data_forced_mode(float *temperature, float *pressure, float *humi
 
         if(temperature != NULL){
           adc_temp = (uint32_t)(((uint32_t)buffer[5] * 4096) | ((uint32_t)buffer[6] * 16) | ((uint32_t)buffer[7] / 16));
-          *temperature = calc_compensated_temperature(adc_temp, calibs);
+          *temperature = calc_compensated_temperature(adc_temp, temp_offset, calibs);
         }
 
         if(pressure != NULL){
@@ -476,18 +491,20 @@ static uint8_t calc_gas_wait_x(uint16_t ms){
   * @brief Calculate the compensated temperature.
   *
   * @param[in] temp_adc The value of the temperature obtained from the sensor registers.
+  * @param[in] temp_offset A temperature offset to be subtracted to the result. This parameter will compensate all the
+  *                        offset added by PCB temperature, sensor element self-heating, etc.
   * @param[in] calibs A structure with the calibration parameters for the calculation of the compensated metrics.
   *
   * @return the compensated temperature.
   */
-static float calc_compensated_temperature(float temp_adc, bme688_calib_sensor *calibs){
+static float calc_compensated_temperature(float temp_adc, float temp_offset, bme688_calib_sensor *calibs){
   float var1, var2, temp_comp;
 
   //Perform calibrations according to the operations specified in the datasheet
   var1 = ((temp_adc / 16384.0) - (calibs->temp.par_t1 / 1024.0)) * calibs->temp.par_t2;
   var2 = (temp_adc / 131072.0) - (calibs->temp.par_t1 / 8192.0);
   var2 = var2 * var2 * calibs->temp.par_t3 * 16.0;
-  calibs->temp.t_fine = var1 + var2;
+  calibs->temp.t_fine = var1 + var2 - temp_offset * 5120.0;
   temp_comp = calibs->temp.t_fine / 5120.0;
 
   return temp_comp;
