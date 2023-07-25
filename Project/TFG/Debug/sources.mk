@@ -23,11 +23,13 @@ OBJS :=
 
 # Every subdirectory with source files must be described here
 SUBDIRS := \
+src/TFTDisplay \
 src/buttons \
 src/client_MQTT \
 src \
 src/configurations \
 src/custom_gpio \
+src/icon_manager \
 src/measures/BME688 \
 src/measures/IAQTracker \
 src/measures/LSM6DSOX \

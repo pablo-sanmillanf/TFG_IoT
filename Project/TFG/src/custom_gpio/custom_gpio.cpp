@@ -17,6 +17,7 @@
 #include <iomanip>
 #include <poll.h>
 #include <iostream>
+#include <stdlib.h>
 
 /* Private defines -----------------------------------------------------------*/
 /* Private typedef -----------------------------------------------------------*/
