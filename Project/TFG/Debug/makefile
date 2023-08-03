@@ -66,7 +66,7 @@ main-build: TFG
 TFG: $(OBJS) $(USER_OBJS) makefile $(OPTIONAL_TOOL_DEPS)
 	@echo 'Building target: $@'
 	@echo 'Invoking: Cross G++ Linker'
-	arm-buildroot-linux-gnueabihf-g++ -L/home/ubuntu/Documents/buildroot-2022.11.1/output/host/usr/lib -L/home/ubuntu/Documents/buildroot-2022.11.1/output/host/arm-buildroot-linux-gnueabihf -L/home/ubuntu/Documents/buildroot-2022.11.1/output/host/arm-buildroot-linux-gnueabihf/sysroot/usr/lib -o "TFG" $(OBJS) $(USER_OBJS) $(LIBS) -ljsoncpp -lpaho-mqtt3c -lpaho-mqttpp3
+	arm-buildroot-linux-uclibcgnueabihf-g++ -L/home/ubuntu/Documents/buildroot-2022.11.1/output/host/usr/lib -L/home/ubuntu/Documents/buildroot-2022.11.1/output/host/arm-buildroot-linux-uclibcgnueabihf -L/home/ubuntu/Documents/buildroot-2022.11.1/output/host/arm-buildroot-linux-uclibcgnueabihf/sysroot/usr/lib -o "TFG" $(OBJS) $(USER_OBJS) $(LIBS) -ljsoncpp -lpaho-mqtt3c -lpaho-mqttpp3
 	@echo 'Finished building target: $@'
 	@echo ' '
 

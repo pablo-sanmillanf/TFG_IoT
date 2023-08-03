@@ -17,7 +17,7 @@
 #include <iomanip>
 #include <poll.h>
 #include <iostream>
-#include <stdlib.h>
+#include <cstdlib>
 
 /* Private defines -----------------------------------------------------------*/
 /* Private typedef -----------------------------------------------------------*/
@@ -177,7 +177,7 @@ int CustomGPIO::GPIO::read(){
   if (::read(fd, reg_value, 3) == -1)
     return -1;
 
-  return atoi(reg_value);
+  return std::atoi(reg_value);
 }
 
 

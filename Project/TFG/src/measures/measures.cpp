@@ -179,5 +179,5 @@ Measures::Meas::~Meas(){
   * @return    floating point altitude in meters.
   */
 static float obtain_sea_level_altitude(float pressure){
-  return 44330.76923 * (1 - pow(pressure / 101325.00, 0.190266));
+  return 44330.76923 * (1 - std::pow((float)(pressure / 101325.00), 0.190266));
 }

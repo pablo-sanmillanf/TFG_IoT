@@ -1,11 +1,11 @@
 /**
   ******************************************************************************
-  * @file   i2c_master.h
-  * @author Pablo San Millán Fierro (pablo.sanmillanf@alumnos.upm.es)
-  * @brief  I2C Handler Module header.
+  * @file   spi_master.h
+  * @author Alejandro Hontanilla Belinchón (a.hontanillab@alumnos.upm.es)
+  * @brief  SPI Handler Module header.
   *
   * @note   End-of-degree work.
-  *         This module manages the I2C communications
+  *         This module manages the SPI communications
   ******************************************************************************
 */
 

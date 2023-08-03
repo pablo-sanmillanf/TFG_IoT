@@ -77,8 +77,6 @@ void SPI_Master::send_spi_msg(uint8_t* messages, uint8_t rx[], uint8_t cmd, int 
 	tr.speed_hz = speed;
 	tr.bits_per_word = 0;
 
-	// Set command mode and read 27 for testing
-
 	if(previous_cmd != cmd){
 	  previous_cmd = cmd;
 	  gpio17.write(!cmd);

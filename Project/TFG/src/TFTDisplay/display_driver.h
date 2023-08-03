@@ -1,14 +1,21 @@
-/*
- * display_driver.h
- *
- *  Created on: May 7, 2023
- *      Author: root
- */
+/**
+  ******************************************************************************
+  * @file   display_driver.h
+  * @author Alejandro Hontanilla Belinchón (a.hontanillab@alumnos.upm.es)
+  * @brief  TFTDisplay driver. Provides a layer of abstraction over SPI comms.
+  *
+  * @note   End-of-degree work.
+  ******************************************************************************
+*/
 
 #ifndef DISPLAY_DRIVER_H_
 #define DISPLAY_DRIVER_H_
 
 #include "spi_master.h"
+#include "gfxfont.h"
+#include "FreeMono12pt7b.h"
+#include "FreeSansBold12pt7b.h"
+#include "FreeMonoBoldOblique12pt7b.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -17,6 +24,11 @@ extern "C" {
   /* Exported types ------------------------------------------------------------*/
   /* Exported constants --------------------------------------------------------*/
   /* Exported macro ------------------------------------------------------------*/
+
+	//Background color
+
+	#define BACKGROUND 0XFF
+
   /* Exported Functions --------------------------------------------------------*/
 
 #ifdef __cplusplus
@@ -35,8 +47,14 @@ extern "C" {
        * @param[in] start_y Y coordinate of the top left corner of the bounding box containing the character
        *
        * @param[in] letter character to write
+       *
+       * @param[in] color color of the text to write
+       *
+       * @param[in] font font of the text
        */
-      void write_char(int start_x, int start_y, char letter, uint8_t color[]);
+      int write_char(int start_x, int start_y, char letter, uint8_t color[], GFXfont font);
+
+
 
       /**
        * @brief Writes a text string to the Display
@@ -46,8 +64,28 @@ extern "C" {
        * @param[in] start_y Y coordinate of the top left corner of the bounding box containing the first character
        *
        * @param[in] string string to write
+       *
+       * @param[in] color color of the text to write
+       *
+       * @param[in] font font of the text
        */
-      void write_string(int start_x, int start_y, char string[], uint8_t color[]);
+      void write_string(int start_x, int start_y, char string[], uint8_t color[], GFXfont font);
+
+
+      /**
+       * @brief Writes a text string to the Display
+       *
+       * @param[in] start_x X coordinate of the top left corner of the bounding box containing the first character
+       *
+       * @param[in] start_y Y coordinate of the top left corner of the bounding box containing the first character
+       *
+       * @param[in] string string to write
+       *
+       * @param[in] color color of the text to write
+       *
+       * @param[in] font font of the text
+       */
+      void write_fast_string(int start_x, int start_y, char string[], uint8_t color[], GFXfont font);
 
       /**
        * @brief Draws a given icon to the display overriding the color of the bitmap
@@ -76,6 +114,8 @@ extern "C" {
        * @param[in] size size of the bitmap
        */
       void draw_icon(int start_x, int start_y, int width, uint16_t bit_map[], int size);
+
+      void uninit();
 
 #ifdef __cplusplus
     }

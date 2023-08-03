@@ -41,8 +41,8 @@ std::atomic_uint8_t MQTT::send_rate = 10;
 static std::mutex mutex;
 static std::condition_variable cond;
 /* Private function prototypes -----------------------------------------------*/
-int read_attributes_state(std::string host, std::string access_token, std::string attributes_topic);
-bool check_attributes(Json::Value root);
+static int read_attributes_state(std::string host, std::string access_token, std::string attributes_topic);
+static bool check_attributes(Json::Value root);
 /* Functions -----------------------------------------------------------------*/
 
 /**
@@ -56,7 +56,7 @@ bool check_attributes(Json::Value root);
  *
  * @return 1 if a on_off variable has changed its state, 0 if not and -1 if error.
  */
-void client_mqtt_thread(std::string host, std::string access_token,
+void MQTT::client_mqtt_thread(std::string host, std::string access_token,
     std::string telemetry_topic, std::string attributes_topic, std::function<void()> on_off_callback){
   int result = read_attributes_state(host, access_token, attributes_topic);
   if(result == -1)
@@ -163,7 +163,7 @@ void client_mqtt_thread(std::string host, std::string access_token,
  *
  * @return 1 if a on_off variable has changed its state, 0 if not and -1 if error.
  */
-int read_attributes_state(std::string host, std::string access_token, std::string attributes_topic){
+static int read_attributes_state(std::string host, std::string access_token, std::string attributes_topic){
   int result = 0;
   std::string request_topic = attributes_topic + "/request/1";
   std::string response_topic = attributes_topic + "/response/+";
@@ -227,7 +227,7 @@ int read_attributes_state(std::string host, std::string access_token, std::strin
  * @return true if a on_off variable has changed its state, false if not.
  *
  */
-bool check_attributes(Json::Value root){
+static bool check_attributes(Json::Value root){
   bool aux_on, notify = false;
   uint8_t aux_rate;
 

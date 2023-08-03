@@ -24,6 +24,7 @@
 #include <sstream>
 #include <cmath>
 #include <stdlib.h>
+#include <functional>
 
 /* External variables---------------------------------------------------------*/
 /* Private defines -----------------------------------------------------------*/
@@ -297,15 +298,15 @@ int Configurations::handle_server_port(int *port){
   auto action_builder = [&]() -> std::function<void ()>{
     if(pulsed.symbol == Buttons::UP)
       return [&]() {
-        int digit = int(*port / std::pow(10, factor)) % 10;
-        int value = *port + ((digit + 1) % 10 - digit) * std::pow(10, factor);
+        int digit = int(*port / std::pow((float)10, factor)) % 10;
+        int value = *port + ((digit + 1) % 10 - digit) * std::pow((float)10, factor);
         *port = std::min(value, max_port);
         std::cout << *port << std::endl;
       };
     else // if(pulsed.symbol == Buttons::DOWN)
       return [&]() {
-        int digit = int(*port / std::pow(10, factor)) % 10;
-        int value = *port + ((digit + 9) % 10 - digit) * std::pow(10, factor);
+        int digit = int(*port / std::pow((float)10, factor)) % 10;
+        int value = *port + ((digit + 9) % 10 - digit) * std::pow((float)10, factor);
         *port = std::min(value, max_port);
         std::cout << *port << std::endl;
       };
@@ -364,14 +365,14 @@ int Configurations::handle_temp_offset(float *offset){
   auto action_builder = [&]() -> std::function<void ()>{
     if(pulsed.symbol == Buttons::UP)
       return [&]() {
-        int digit = int(offset_int / std::pow(10, factor)) % 10;
-        offset_int += ((digit + 1) % 10 - digit) * std::pow(10, factor);
+        int digit = int(offset_int / std::pow((float)10, factor)) % 10;
+        offset_int += ((digit + 1) % 10 - digit) * std::pow((float)10, factor);
         std::cout << float(offset_int)/100.0 << std::endl;
       };
     else // if(pulsed.symbol == Buttons::DOWN)
       return [&]() {
-        int digit = int(offset_int / std::pow(10, factor)) % 10;
-        offset_int += ((digit + 9) % 10 - digit) * std::pow(10, factor);
+        int digit = int(offset_int / std::pow((float)10, factor)) % 10;
+        offset_int += ((digit + 9) % 10 - digit) * std::pow((float)10, factor);
         std::cout << float(offset_int)/100.0 << std::endl;
       };
   };
