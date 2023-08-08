@@ -13,11 +13,13 @@ RM := rm -rf
 -include src/measures/IAQTracker/subdir.mk
 -include src/measures/BME688/subdir.mk
 -include src/measures/subdir.mk
--include src/icon_manager/subdir.mk
 -include src/custom_gpio/subdir.mk
 -include src/configurations/subdir.mk
 -include src/client_MQTT/subdir.mk
 -include src/buttons/subdir.mk
+-include src/TFTDisplay/spi_master/subdir.mk
+-include src/TFTDisplay/icon_manager/subdir.mk
+-include src/TFTDisplay/display_driver/subdir.mk
 -include src/TFTDisplay/subdir.mk
 -include src/subdir.mk
 ifneq ($(MAKECMDGOALS),clean)

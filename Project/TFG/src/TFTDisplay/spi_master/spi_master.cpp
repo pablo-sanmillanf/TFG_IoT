@@ -1,5 +1,5 @@
 #include "spi_master.h"
-#include "../custom_gpio/custom_gpio.h"
+#include "../../custom_gpio/custom_gpio.h"
 
 static int fd;
 
@@ -35,32 +35,32 @@ int SPI_Master::spi_start (int spi_device, int mode, int bits, int speed) {
 	ret = ioctl(fd, SPI_IOC_WR_MODE32, &mode);
 
 	if (ret == -1)
-	  printf("Can't set SPI write mode");
+	  return -1;
 
 	ret = ioctl(fd, SPI_IOC_RD_MODE, &mode);
 
 	if (ret == -1)
-	  printf("Can't set SPI read mode");
+	  return -1;
 
 	ret = ioctl(fd, SPI_IOC_WR_BITS_PER_WORD, &bits);
 
 	if (ret == -1)
-	  printf("can't set bits per word");
+	  return -1;
 
 	ret = ioctl(fd, SPI_IOC_RD_BITS_PER_WORD, &bits);
 
 	if (ret == -1)
-	  printf("can't get bits per word");
+	  return -1;
 
 	ret = ioctl(fd, SPI_IOC_WR_MAX_SPEED_HZ, &speed);
 
 	if (ret == -1)
-	  printf("can't set max speed hz");
+	  return -1;
 
 	ret = ioctl(fd, SPI_IOC_RD_MAX_SPEED_HZ, &speed);
 
 	if (ret == -1)
-	  printf("can't get max speed hz");
+	  return -1;
 
 	gpio17.setOutput();
 	gpio17.write(true);
@@ -99,8 +99,6 @@ int SPI_Master::spi_end(){
 	fd = 0;
 	}
 	gpio17.~GPIO();
-
-	printf("Closed");
 
 	return status;
 }

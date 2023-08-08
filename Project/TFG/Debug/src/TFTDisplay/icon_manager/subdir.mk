@@ -4,20 +4,17 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 CPP_SRCS += \
-../src/app_data_storage.cpp \
-../src/main.cpp 
+../src/TFTDisplay/icon_manager/icon_manager.cpp 
 
 CPP_DEPS += \
-./src/app_data_storage.d \
-./src/main.d 
+./src/TFTDisplay/icon_manager/icon_manager.d 
 
 OBJS += \
-./src/app_data_storage.o \
-./src/main.o 
+./src/TFTDisplay/icon_manager/icon_manager.o 
 
 
 # Each subdirectory must supply rules for building sources it contributes
-src/%.o: ../src/%.cpp src/subdir.mk
+src/TFTDisplay/icon_manager/%.o: ../src/TFTDisplay/icon_manager/%.cpp src/TFTDisplay/icon_manager/subdir.mk
 	@echo 'Building file: $<'
 	@echo 'Invoking: Cross G++ Compiler'
 	arm-buildroot-linux-uclibcgnueabihf-g++ -I/home/ubuntu/Documents/buildroot-2022.11.1/output/host/usr/include -I/home/ubuntu/Documents/buildroot-2022.11.1/output/host/arm-buildroot-linux-uclibcgnueabihf/sysroot/usr/include -O0 -g3 -Wall -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$@" -o "$@" "$<"
@@ -25,10 +22,10 @@ src/%.o: ../src/%.cpp src/subdir.mk
 	@echo ' '
 
 
-clean: clean-src
+clean: clean-src-2f-TFTDisplay-2f-icon_manager
 
-clean-src:
-	-$(RM) ./src/app_data_storage.d ./src/app_data_storage.o ./src/main.d ./src/main.o
+clean-src-2f-TFTDisplay-2f-icon_manager:
+	-$(RM) ./src/TFTDisplay/icon_manager/icon_manager.d ./src/TFTDisplay/icon_manager/icon_manager.o
 
-.PHONY: clean-src
+.PHONY: clean-src-2f-TFTDisplay-2f-icon_manager
 

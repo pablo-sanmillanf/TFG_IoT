@@ -24,12 +24,14 @@ OBJS :=
 # Every subdirectory with source files must be described here
 SUBDIRS := \
 src/TFTDisplay \
+src/TFTDisplay/display_driver \
+src/TFTDisplay/icon_manager \
+src/TFTDisplay/spi_master \
+src \
 src/buttons \
 src/client_MQTT \
-src \
 src/configurations \
 src/custom_gpio \
-src/icon_manager \
 src/measures/BME688 \
 src/measures/IAQTracker \
 src/measures/LSM6DSOX \
