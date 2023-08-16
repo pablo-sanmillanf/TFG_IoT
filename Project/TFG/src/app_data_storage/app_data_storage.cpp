@@ -12,6 +12,9 @@
 /* Includes ------------------------------------------------------------------*/
 #include "app_data_storage.h" // Module header
 
+const std::string Storage::data_directory = "./weatherApp";
+const std::string Storage::app_data_file_path = data_directory + "/data.conf";
+
 /* Private defines -----------------------------------------------------------*/
 /* Private typedef -----------------------------------------------------------*/
 /* Private variables----------------------------------------------------------*/

@@ -70,6 +70,15 @@ const std::string send_rate_mqtt_string = "send_rate";
 void client_mqtt_thread(std::string host, std::string access_token,
     std::string telemetry_topic, std::string attributes_topic, std::function<void()> on_off_callback);
 
+
+/**
+ * @brief This function is used to finish the MQTT communications thread correctly. The termination
+ *        is not instantaneous and after this function the join() function of the thread in question
+ *        must be called.
+ *
+ */
+void client_mqtt_thread_finisher();
+
 }
 
 #endif /* __CLIENT_MQTT_H__ */

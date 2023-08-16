@@ -53,6 +53,15 @@ extern SyncQueue<BUTTON> buttonsQueue;
  */
 void buttons_thread(bool active_state, int long_pulse, int up_pin, int down_pin, int left_pin, int right_pin, int center_pin);
 
+
+/**
+ * @brief This function is used to finish the buttons handler thread correctly. The termination is
+ *        not instantaneous and after this function the join() function of the thread in question
+ *        must be called.
+ *
+ */
+void buttons_thread_finisher();
+
 }
 
 

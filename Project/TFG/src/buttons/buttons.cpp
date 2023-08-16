@@ -11,7 +11,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "buttons.h" // Module header
-#include <iostream>
+#include <atomic>
 
 /* External variables---------------------------------------------------------*/
 SyncQueue<Buttons::BUTTON> Buttons::buttonsQueue;
@@ -19,6 +19,8 @@ SyncQueue<Buttons::BUTTON> Buttons::buttonsQueue;
 /* Private defines -----------------------------------------------------------*/
 /* Private typedef -----------------------------------------------------------*/
 /* Private variables----------------------------------------------------------*/
+static std::atomic_bool run = true;
+static int regular_wait_time = 200;
 /* Private function prototypes -----------------------------------------------*/
 /* Functions -----------------------------------------------------------------*/
 
@@ -49,13 +51,13 @@ void Buttons::buttons_thread(bool active_state, int long_pulse, int up_pin, int 
 
   int current_active = -1, aux = -1;
   enum {IDLE, BOUNCES, PIN_ACTIVE, LONG_PULSE} state = IDLE;
-  for(;;){
+  while(run){
     switch(state){
       case IDLE:
         //std::cout << "IDLE" <<std::endl;
 
-        current_active = CustomGPIO::GPIO::waits(gpios, 5, -1);
-        if(current_active != -1){
+        current_active = CustomGPIO::GPIO::waits(gpios, 5, regular_wait_time);
+        if(current_active >= 0){
           state = BOUNCES;
         }
         break;
@@ -82,11 +84,24 @@ void Buttons::buttons_thread(bool active_state, int long_pulse, int up_pin, int 
         }
         break;
       case LONG_PULSE:
-        if(current_active == CustomGPIO::GPIO::waits(gpios, 5, -1) && active_state != gpios[current_active].read()){
+        if(current_active == CustomGPIO::GPIO::waits(gpios, 5, regular_wait_time) &&
+            active_state != gpios[current_active].read()){
           buttonsQueue.push((Buttons::BUTTON){(Buttons::BUTTON_SYMBOL)current_active, Buttons::LONG_PULSE_RELEASED});
           state = IDLE;
         }
         break;
     }
   }
+  run = true;
+}
+
+
+/**
+ * @brief This function is used to finish the buttons handler thread correctly. The termination is
+ *        not instantaneous and after this function the join() function of the thread in question
+ *        must be called.
+ *
+ */
+void Buttons::buttons_thread_finisher(){
+  run = false;
 }

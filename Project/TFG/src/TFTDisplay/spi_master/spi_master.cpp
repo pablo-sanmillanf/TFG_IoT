@@ -9,7 +9,7 @@ static bool previous_cmd = false;
 struct spi_ioc_transfer tr;
 
 /**
- * @brief Starts the SPI device and configures it to allow SPI comunnications.
+ * @brief Starts the SPI device and configures it to allow SPI communications.
  * 
  * @param[in] spi_device Indicates which SPI device of type spidev0.<number> 
  *                       within the /dev/ directory will be used.
@@ -18,56 +18,54 @@ struct spi_ioc_transfer tr;
  */
 int SPI_Master::spi_start (int spi_device, int mode, int bits, int speed) {
 
-	int ret = 0;
-
 	if(fd == 0){
-	//Open file descriptor
-	char spiFile[15];
-	sprintf(spiFile, "/dev/spidev0.%d", spi_device);
+    //Open file descriptor
+    char spiFile[15];
+    sprintf(spiFile, "/dev/spidev0.%d", spi_device);
 
-	fd = open(spiFile, O_RDWR);
+    fd = open(spiFile, O_RDWR);
 
-	if(fd == -1){
-	  return -1;
+    if(fd == -1){
+      return -1;
+    }
 	}
-	}
 
-	ret = ioctl(fd, SPI_IOC_WR_MODE32, &mode);
-
-	if (ret == -1)
+	if(ioctl(fd, SPI_IOC_WR_MODE32, &mode))
 	  return -1;
 
-	ret = ioctl(fd, SPI_IOC_RD_MODE, &mode);
-
-	if (ret == -1)
+	if(ioctl(fd, SPI_IOC_RD_MODE, &mode))
 	  return -1;
 
-	ret = ioctl(fd, SPI_IOC_WR_BITS_PER_WORD, &bits);
-
-	if (ret == -1)
+	if(ioctl(fd, SPI_IOC_WR_BITS_PER_WORD, &bits))
 	  return -1;
 
-	ret = ioctl(fd, SPI_IOC_RD_BITS_PER_WORD, &bits);
-
-	if (ret == -1)
+	if(ioctl(fd, SPI_IOC_RD_BITS_PER_WORD, &bits))
 	  return -1;
 
-	ret = ioctl(fd, SPI_IOC_WR_MAX_SPEED_HZ, &speed);
-
-	if (ret == -1)
+	if(ioctl(fd, SPI_IOC_WR_MAX_SPEED_HZ, &speed))
 	  return -1;
 
-	ret = ioctl(fd, SPI_IOC_RD_MAX_SPEED_HZ, &speed);
-
-	if (ret == -1)
+	if(ioctl(fd, SPI_IOC_RD_MAX_SPEED_HZ, &speed))
 	  return -1;
 
 	gpio17.setOutput();
 	gpio17.write(true);
 
-	return fd;
+	return 0;
 }
 
+/**
+ * @brief It sends SPI data of length "size" to the other SPI end, at a speed "speed" and with a delay time "delay" after the data is sent.
+ *        The response is stored in the rx buffer. To differentiate between normal data and commands, the GPIO17 pin will be enabled or
+ *        disabled. This will be indicated by the parameter "cmd".
+ *
+ * @param[in] messages Pointer to the SPI data to send.
+ * @param[in] rx Pointer to the array where the response will be stored.
+ * @param[in] cmd If true, the data sent is a command, if false, it is normal data.
+ * @param[in] size The size of the data sent.
+ * @param[in] speed Speed of the SPI link.
+ *
+ */
 void SPI_Master::send_spi_msg(uint8_t* messages, uint8_t rx[], uint8_t cmd, int size, int delay, int speed){
 
 	tr.tx_buf = (unsigned long)messages;
@@ -82,7 +80,6 @@ void SPI_Master::send_spi_msg(uint8_t* messages, uint8_t rx[], uint8_t cmd, int 
 	  gpio17.write(!cmd);
 	}
 
-
 	// Send SPI data
 
 	int ret = ioctl(fd, SPI_IOC_MESSAGE(1), &tr);
@@ -93,6 +90,11 @@ void SPI_Master::send_spi_msg(uint8_t* messages, uint8_t rx[], uint8_t cmd, int 
 }
 
 
+/**
+ * @brief End SPI communications and free all the related resources.
+ *
+ * @return 0 if success, -1 if error.
+ */
 int SPI_Master::spi_end(){
 	int status = close(fd);
 	if(status != -1){

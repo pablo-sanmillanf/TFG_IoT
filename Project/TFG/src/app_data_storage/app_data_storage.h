@@ -28,8 +28,8 @@ namespace Storage{
 /* Exported types ------------------------------------------------------------*/
 /* Exported variables --------------------------------------------------------*/
 /* Exported constants --------------------------------------------------------*/
-extern const std::string data_directory = "~/weatherApp";
-extern const std::string app_data_file_path = data_directory + "/data.conf";
+extern const std::string data_directory;
+extern const std::string app_data_file_path;
 
 /* Exported macro ------------------------------------------------------------*/
 /* Exported Classes ----------------------------------------------------------*/

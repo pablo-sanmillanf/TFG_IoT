@@ -40,7 +40,10 @@ std::atomic_uint8_t MQTT::send_rate = 10;
 /* Private variables----------------------------------------------------------*/
 static std::mutex mutex;
 static std::condition_variable cond;
+static std::atomic_bool run = true;
+static int regular_wait_time = 200;
 /* Private function prototypes -----------------------------------------------*/
+static void wait(mqtt::token_ptr token);
 static int read_attributes_state(std::string host, std::string access_token, std::string attributes_topic);
 static bool check_attributes(Json::Value root);
 /* Functions -----------------------------------------------------------------*/
@@ -58,101 +61,132 @@ static bool check_attributes(Json::Value root);
  */
 void MQTT::client_mqtt_thread(std::string host, std::string access_token,
     std::string telemetry_topic, std::string attributes_topic, std::function<void()> on_off_callback){
+
+  run = true;
+
   int result = read_attributes_state(host, access_token, attributes_topic);
-  if(result == -1)
-    return;
-  else if(result==1)
-    on_off_callback();
+  if(result != -1){
 
-  //Sets JSON floats precision
-  Json::StreamWriterBuilder builder;
-  builder.settings_["precision"] = 2;
-  builder.settings_["indentation"] = "";
-  builder.settings_["precisionType"] = "decimal";
-  std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
+    if(result==1)
+      on_off_callback();
 
-  mqtt::async_client cli(host, "request");
+    //Sets JSON floats precision
+    Json::StreamWriterBuilder builder;
+    builder.settings_["precision"] = 2;
+    builder.settings_["indentation"] = "";
+    builder.settings_["precisionType"] = "decimal";
+    std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
 
-  mqtt::connect_options connOpts;
-  connOpts.set_user_name(access_token);
-  connOpts.set_keep_alive_interval(20);
-  connOpts.set_clean_session(true);
+    mqtt::async_client cli(host, "request");
 
-  cli.set_message_callback([&](mqtt::const_message_ptr msg) {
-    Json::Reader reader;
-    Json::Value root;
-    std::cout << "MSG_RECEIVED: " << msg->get_payload_str() << std::endl;
-    if(reader.parse(msg->get_payload_str(), root))
-      if(check_attributes(root))
-        on_off_callback();
-  });
+    mqtt::connect_options connOpts;
+    connOpts.set_user_name(access_token);
+    connOpts.set_keep_alive_interval(20);
+    connOpts.set_clean_session(true);
 
-  std::string *msgs = new std::string[100];
-  int i = 0;
+    cli.set_message_callback([&](mqtt::const_message_ptr msg) {
+      Json::Reader reader;
+      Json::Value root;
+      std::cout << "MSG_RECEIVED: " << msg->get_payload_str() << std::endl;
+      if(reader.parse(msg->get_payload_str(), root))
+        if(check_attributes(root))
+          on_off_callback();
+    });
 
-  try {
-    cli.connect(connOpts)->wait(); // Connect to the server
-    cli.subscribe(attributes_topic, 1)->wait(); // Subscribe to attributes changes.
+    std::string *msgs = new std::string[100];
+    int i = 0;
 
-    for(;;){
-      if(MQTT::continuous_send){
-        std::stringstream sstream;
-        Json::Value root;
+    try {
 
-        if(MQTT::send_temp && MQTT::temp_on){
-          root["temperature"] = Json::Value(Measures::bme_data.temperature);
-        }
-        if(MQTT::send_press && MQTT::press_on){
-          root["pressure"] = Json::Value(Measures::bme_data.pressure);
-        }
-        if(MQTT::send_hum && MQTT::hum_on){
-          root["humidity"] = Json::Value(Measures::bme_data.humidity);
-        }
-        if(MQTT::send_IAQ && MQTT::IAQ_on){
-          root["IAQ"] = Json::Value(Measures::bme_data.iaq);
-        }
-        if(MQTT::send_alt && MQTT::alt_on){
-          root["altitude"] = Json::Value(Measures::bme_data.altitude);
-        }
+      wait(cli.connect(connOpts)); // Connect to the server
+      wait(cli.subscribe(attributes_topic, 1)); // Subscribe to attributes changes.
+
+      while(run){
+        if(MQTT::continuous_send){
+          std::stringstream sstream;
+          Json::Value root;
+
+          if(MQTT::send_temp && MQTT::temp_on){
+            root["temperature"] = Json::Value(Measures::bme_data.temperature);
+          }
+          if(MQTT::send_press && MQTT::press_on){
+            root["pressure"] = Json::Value(Measures::bme_data.pressure);
+          }
+          if(MQTT::send_hum && MQTT::hum_on){
+            root["humidity"] = Json::Value(Measures::bme_data.humidity);
+          }
+          if(MQTT::send_IAQ && MQTT::IAQ_on){
+            root["IAQ"] = Json::Value(Measures::bme_data.iaq);
+          }
+          if(MQTT::send_alt && MQTT::alt_on){
+            root["altitude"] = Json::Value(Measures::bme_data.altitude);
+          }
 
 
-        // Write to stream.
-        if(!root.empty()){
-          writer->write(root, &sstream);
-          msgs[i++] = sstream.str();
+          // Write to stream.
+          if(!root.empty()){
+            writer->write(root, &sstream);
+            msgs[i++] = sstream.str();
+          }
+          else{
+            msgs[i++] = "{}";
+          }
+
+
+          if(i >= MQTT::send_rate){
+            i = 0;
+
+            std::cout << std::endl << "DATA SENT: " << std::endl;
+            for(int e = 0; e < MQTT::send_rate; e++){
+              while(!cli.publish(telemetry_topic, msgs[e], 0, false)->wait_for(regular_wait_time) && run);
+              std::cout << "It " << e << ": " << msgs[e] << std::endl;
+            }
+          }
+          sleep(1);
         }
         else{
-          msgs[i++] = "{}";
+          //Blocks sending thread until a reception of a true for the MQTT::continuous_send variable
+          std::unique_lock<std::mutex> lock(mutex);
+          cond.wait(lock);
         }
-
-
-        if(i >= MQTT::send_rate){
-          i = 0;
-
-          std::cout << std::endl << "DATA SENT: " << std::endl;
-          for(int e = 0; e < MQTT::send_rate; e++){
-            cli.publish(telemetry_topic, msgs[e], 0, false)->wait();
-            std::cout << "It " << e << ": " << msgs[e] << std::endl;
-          }
-        }
-        sleep(1);
-      }
-      else{
-        //Blocks sending thread until a reception of a true for the MQTT::continuous_send variable
-        std::unique_lock<std::mutex> lock(mutex);
-        cond.wait(lock);
       }
     }
+    catch (const mqtt::exception& exc) {
+      std::cerr << "Error: " << exc.what() << " [" << exc.get_reason_code() << "]" << std::endl;
+      return;
+    }
+
+    wait(cli.disconnect());
   }
-  catch (const mqtt::exception& exc) {
-    std::cerr << "Error: " << exc.what() << " [" << exc.get_reason_code() << "]" << std::endl;
-    return;
-  }
-  cli.disconnect();
+  std::cout << "MQTT finished" << std::endl;
+}
+
+
+/**
+ * @brief This function is used to finish the MQTT communications thread correctly. The termination
+ *        is not instantaneous and after this function the join() function of the thread in question
+ *        must be called.
+ *
+ */
+void MQTT::client_mqtt_thread_finisher(){
+  run = false;
+  cond.notify_one();
 }
 
 
 /* Private functions ---------------------------------------------------------*/
+/**
+ * @brief This function is used to wait until an MQTT operation is finished or until the thread finished flag is set.
+ *
+ * @param[in] token The pointer associated to the MQTT operation.
+ *
+ */
+static void wait(mqtt::token_ptr token){
+  while(!token->wait_for(regular_wait_time) && run);
+}
+
+
+
 /**
  * @brief Read all the attributes that are relevant from the server. Those attributes configure
  *        the information that the client must send to the server and the cadence and number.
@@ -165,6 +199,7 @@ void MQTT::client_mqtt_thread(std::string host, std::string access_token,
  */
 static int read_attributes_state(std::string host, std::string access_token, std::string attributes_topic){
   int result = 0;
+  bool received = false;
   std::string request_topic = attributes_topic + "/request/1";
   std::string response_topic = attributes_topic + "/response/+";
   std::string request_payload = "{\"sharedKeys\": \"" +
@@ -182,33 +217,45 @@ static int read_attributes_state(std::string host, std::string access_token, std
                     MQTT::send_rate_mqtt_string + "\"}";
 
 
-  mqtt::client cli(host, "request");
+  mqtt::async_client cli(host, "request");
 
   mqtt::connect_options connOpts;
   connOpts.set_user_name(access_token);
   connOpts.set_keep_alive_interval(20);
   connOpts.set_clean_session(true);
 
-  try {
-    // Connect to the server
-    cli.connect(connOpts);
-
-    // Subscribe to the response topic and request it publishing in request topic.
-    cli.subscribe(response_topic);
-    cli.publish(request_topic, request_payload.c_str(), request_payload.size());
-
-    // Process data
-    mqtt::const_message_ptr msg = cli.consume_message();
-
+  cli.set_message_callback([&](mqtt::const_message_ptr msg) {
     Json::Reader reader;
     Json::Value root;
+    std::cout << "MSG_RECEIVED: " << msg->get_payload_str() << std::endl;
     if(reader.parse(msg->get_payload_str(), root)){
       if(check_attributes(root["shared"]))
         result = 1;
+      received = true;
     }
+  });
 
+  try {
+    // Connect to the server
+    wait(cli.connect(connOpts));
+
+    std::cout << "Connected" << std::endl;
+
+    // Subscribe to the response topic and request it publishing in request topic.
+    wait(cli.subscribe(attributes_topic, 1));
+    wait(cli.publish(request_topic, request_payload.c_str(), request_payload.size()));
+
+    std::cout << "Published" << std::endl;
+
+    while(!received && run){
+
+      std::cout << "Wait" << std::endl;
+      usleep(1000*regular_wait_time);
+    }
+    std::cout << "Waited: " << received << " - " << run << std::endl;
     // Disconnect
-    cli.disconnect();
+    wait(cli.disconnect());
+
   }
   catch (const mqtt::exception& exc) {
     std::cerr << "Error: " << exc.what() << " [" << exc.get_reason_code() << "]" << std::endl;

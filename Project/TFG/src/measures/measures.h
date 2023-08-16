@@ -51,9 +51,9 @@ class Meas{
   std::thread *measures_thread;
   uint32_t measure_rate_us;
 
-  void init(uint8_t ovsp_temp, uint8_t ovsp_press, uint8_t ovsp_hum, float target_gas_temp, uint16_t gas_ms, float amb_temp, float temp_offset, uint32_t measure_rate_us);
+  void init(uint8_t ovsp_temp, uint8_t ovsp_press, uint8_t ovsp_hum, float target_gas_temp, uint16_t gas_ms, uint32_t measure_rate_us);
   void change_oversamplings();
-  static void thread(Meas meas);
+  static void thread(Meas *meas);
 public:
 
   /**
@@ -90,7 +90,7 @@ public:
    * @param[in] ovsp_press The pressure oversampling. Must be OVSP_0_X, OVSP_1_X, OVSP_2_X, OVSP_4_X, OVSP_8_X or OVSP_16_X.
    * @param[in] ovsp_hum The humidity oversampling. Must be OVSP_0_X, OVSP_1_X, OVSP_2_X, OVSP_4_X, OVSP_8_X or OVSP_16_X.
    * @param[in] target_gas_temp  The temperature that the hot plate of the gas sensor will reach to get the measure.
-   * @param[in] measure_rate_us  The time to obtain the desired temperature in the hot plate of the gas sensor. Should be greater than 30ms.
+   * @param[in] gas_ms           The time to obtain the desired temperature in the hot plate of the gas sensor. Should be greater than 30ms.
    * @param[in] amb_temp         An estimated ambient temperature for the gas sensor. The value doesn't have to be very accurate and a value
    *                             near 25ºC can be correct.
    * @param[in] temp_offset The temperature offset to be subtracted to the compensated temperature given by the BME sensor.
@@ -99,8 +99,17 @@ public:
    */
   Meas (uint8_t ovsp_temp, uint8_t ovsp_press, uint8_t ovsp_hum, float target_gas_temp, uint16_t gas_ms, float amb_temp,
       float temp_offset, uint32_t measure_rate_us):sensor(amb_temp, temp_offset){
-    this->init(ovsp_temp, ovsp_press, ovsp_hum, target_gas_temp, gas_ms, amb_temp, temp_offset, measure_rate_us);};
+    this->init(ovsp_temp, ovsp_press, ovsp_hum, target_gas_temp, gas_ms, measure_rate_us);};
 
+
+  /**
+   * @brief Set the offset to extract to the resulting temperature read from the temperature sensor.
+   *        As the rest of the measures depends on the temperatures measures, this change also will affect them.
+   *
+   * @param[in] offset The temp offset to be substracted.
+   *
+   */
+  void set_temp_offset(float offset);
 
 
   /**
