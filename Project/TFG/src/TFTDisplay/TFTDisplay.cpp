@@ -37,7 +37,7 @@ uint8_t TFTDisplay::range_101_150_iaq_color[] = {0xFF, 0xE0};
 uint8_t TFTDisplay::range_151_200_iaq_color[] = {0xFC, 0x00};
 uint8_t TFTDisplay::range_201_250_iaq_color[] = {0xF8, 0x00};
 uint8_t TFTDisplay::range_251_350_iaq_color[] = {0x98, 0x13};
-uint8_t TFTDisplay::range_351_plus_iaq_color[] = {0x51, 0x40};
+uint8_t TFTDisplay::range_351_plus_iaq_color[] = {0x30, 0xA0};
 
 const int TFTDisplay::max_conf_menus = 4;
 const int TFTDisplay::max_chars_edit_menu = 5;

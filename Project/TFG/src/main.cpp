@@ -1,3 +1,101 @@
+#define __CODE__
+
+#ifndef __CODE__
+
+/* C++ reimplementation of the gpiofind tool. */
+
+#include <gpiod.hpp>
+
+#include <cstdlib>
+#include <iostream>
+
+int main(int argc, char **argv)
+{
+  if (argc != 2) {
+    ::std::cerr << "usage: " << argv[0] << " <line name>" << ::std::endl;
+    return EXIT_FAILURE;
+  }
+
+  ::gpiod::line line = ::gpiod::find_line(argv[1]);
+  if (!line)
+    return EXIT_FAILURE;
+
+  ::std::cout << line.get_chip().name() << " " << line.offset() << ::std::endl;
+
+  return EXIT_SUCCESS;
+}
+
+
+#endif
+
+
+
+
+#define __BUTTON_CODE__
+
+#ifndef __BUTTON_CODE__
+
+/***
+ * EXAMPLE OF MULTITHREAD WITH BUTTONS CLASS
+ */
+
+#include <thread>
+#include "buttons/buttons.h"
+#include <iostream>
+#include <unistd.h>
+#include <gpiod.hpp>
+
+
+void printer_thread(){
+  Buttons::BUTTON data;
+  std::string type;
+  for(;;){
+    data = Buttons::buttonsQueue.pop();
+    if(data.type == Buttons::LONG_PULSE)
+      type = "LONG";
+    else if(data.type == Buttons::LONG_PULSE_RELEASED)
+      type = "RELEASED";
+    else
+      type = "SHORT";
+
+    switch(data.symbol){
+      case Buttons::UP:
+        std::cout << "UP " << type << " Pulse" << std::endl;
+        break;
+      case Buttons::DOWN:
+        std::cout << "DOWN " << type << " Pulse" << std::endl;
+        break;
+      case Buttons::LEFT:
+        std::cout << "LEFT " << type << " Pulse" << std::endl;
+        break;
+      case Buttons::RIGHT:
+        std::cout << "RIGHT " << type << " Pulse" << std::endl;
+        break;
+      case Buttons::CENTER:
+        std::cout << "CENTER " << type << " Pulse" << std::endl;
+        break;
+    }
+  }
+}
+
+int main(){
+  std::thread first (Buttons::buttons_thread, 0, 2000, 25, 7, 24, 18, 23);
+
+  usleep(100000);
+  std::thread third (printer_thread);  // spawn new thread that calls printer_thread()
+
+
+  std::cout << "Main wait\n" << std::endl;
+  // synchronize threads:
+  first.join();                // pauses until first finishes
+  third.join();               // pauses until third finishes
+  return 0;
+}
+#endif
+
+//#define MAIN
+
+#ifndef MAIN
 #include <iostream>
 #include <stdio.h>
 #include <stdint.h>
@@ -53,7 +151,7 @@ const std::string tb_attributes_topic = "v1/devices/me/attributes";
 const int wait_time_ms = 100;
 const int metric_period_s = 4 * 1000/wait_time_ms;
 
-const int min_temp = -20;
+const int min_temp = -10;
 const int max_temp = 50;
 
 const std::string timezone_file_path = "/etc/timezone";
@@ -95,7 +193,7 @@ int main() {
                                 << "\tIAQ: " << MQTT::IAQ_on
                                 << "\tAlt: " << MQTT::alt_on << std::endl;
   };
-  std::thread buttons_thread(Buttons::buttons_thread, 1, 500, 25, 12, 24, 18, 23);
+  std::thread buttons_thread(Buttons::buttons_thread, 0, 500, 25, 7, 24, 18, 23);
   std::thread mqtt_thread(MQTT::client_mqtt_thread, host_ip, mqtt_token, tb_telemetry_topic, tb_attributes_topic, fn);
 
 
@@ -558,8 +656,12 @@ int main() {
                                                saved_nets_close_line_nbr[saved_net_index] + "d' " +
                                                networks_file_path).c_str());
                       }
+                      //Add new network to wpa_supplicant.conf
                       system(("wpa_passphrase \"" + avail_nets[avail_net_index] + "\" \"" +
                           new_psw + "\" >> " + networks_file_path).c_str());
+
+                      //Reconfigure wpa_supplicant
+                      system("wpa_cli -i wlan0 reconfigure");
                     }
                   }
 
@@ -801,13 +903,9 @@ std::string editable_text_menu(std::string title, std::string text, uint32_t lon
           std::string sub_str = text.substr(init_visible_str, TFTDisplay::max_chars_edit_menu);
 
           if(text_refresh){
-            TFTDisplay::print_centered_title(title, 2);
-            std::this_thread::sleep_for(std::chrono::seconds(1));
             TFTDisplay::print_editable_text(false, true, sub_str, leftmost_border_menu, -1);
           }
           else{
-            TFTDisplay::print_centered_title(title, 2);
-            std::this_thread::sleep_for(std::chrono::seconds(1));
             TFTDisplay::print_editable_text(
                 false, false, sub_str, leftmost_border_menu, leftmost_border_menu - step);
           }
@@ -837,13 +935,9 @@ std::string editable_text_menu(std::string title, std::string text, uint32_t lon
           std::string sub_str = text.substr(init_visible_str, TFTDisplay::max_chars_edit_menu);
 
           if(text_refresh){
-            TFTDisplay::print_centered_title(title, 2);
-            std::this_thread::sleep_for(std::chrono::seconds(1));
             TFTDisplay::print_editable_text(false, true, sub_str, leftmost_border_menu, -1);
           }
           else{
-            TFTDisplay::print_centered_title(title, 2);
-            std::this_thread::sleep_for(std::chrono::seconds(1));
             TFTDisplay::print_editable_text(
                 false, false, sub_str, leftmost_border_menu, leftmost_border_menu + step);
           }
@@ -855,8 +949,6 @@ std::string editable_text_menu(std::string title, std::string text, uint32_t lon
         [&] () {
           text = up_down_fn(text, init_visible_str + leftmost_border_menu, true);
           std::string sub_str = text.substr(init_visible_str, TFTDisplay::max_chars_edit_menu);
-          TFTDisplay::print_centered_title(title, 2);
-          std::this_thread::sleep_for(std::chrono::seconds(1));
           TFTDisplay::print_editable_text(false, true, sub_str, leftmost_border_menu, -1);
         }
       );
@@ -866,8 +958,6 @@ std::string editable_text_menu(std::string title, std::string text, uint32_t lon
         [&] () {
           text = up_down_fn(text, init_visible_str + leftmost_border_menu, false);
           std::string sub_str = text.substr(init_visible_str, TFTDisplay::max_chars_edit_menu);
-          TFTDisplay::print_centered_title(title, 2);
-          std::this_thread::sleep_for(std::chrono::seconds(1));
           TFTDisplay::print_editable_text(false, true, sub_str, leftmost_border_menu, -1);
         }
       );
@@ -928,8 +1018,6 @@ int text_list_menu(std::string title, std::vector<std::string> list, uint32_t lo
               sublist[i] = list[(i + index) % list.size()];
             }
 
-            TFTDisplay::print_centered_title(title, 2);
-            std::this_thread::sleep_for(std::chrono::seconds(1));
             TFTDisplay::print_text_list(false, true, sublist, [] (){return 0;});
           }
         );
@@ -944,8 +1032,6 @@ int text_list_menu(std::string title, std::vector<std::string> list, uint32_t lo
               sublist[i] = list[(i + index) % list.size()];
             }
 
-            TFTDisplay::print_centered_title(title, 2);
-            std::this_thread::sleep_for(std::chrono::seconds(1));
             TFTDisplay::print_text_list(false, true, sublist, [] (){return 0;});
           }
         );
@@ -961,8 +1047,6 @@ int text_list_menu(std::string title, std::vector<std::string> list, uint32_t lo
       while(cnt++ < 10 && Buttons::buttonsQueue.size() == 0){
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
       }
-      TFTDisplay::print_centered_title(title, 2);
-      std::this_thread::sleep_for(std::chrono::seconds(1));
       TFTDisplay::print_text_list(false, false, sublist, exit_fn);
       if(Buttons::buttonsQueue.size() == 0){
         cnt = 0;
@@ -970,9 +1054,6 @@ int text_list_menu(std::string title, std::vector<std::string> list, uint32_t lo
           std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
         if(Buttons::buttonsQueue.size() == 0){
-
-          TFTDisplay::print_centered_title(title, 2);
-          std::this_thread::sleep_for(std::chrono::seconds(1));
           TFTDisplay::print_text_list(false, true, sublist, exit_fn);
           if(Buttons::buttonsQueue.size() == 0){
             cnt = 0;
@@ -1079,3 +1160,4 @@ void pulse_action(Buttons::BUTTON previous_pulsed, uint32_t us_cycle, std::funct
     }while(pressed);
 }
 
+#endif

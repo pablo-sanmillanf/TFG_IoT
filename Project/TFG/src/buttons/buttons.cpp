@@ -54,7 +54,6 @@ void Buttons::buttons_thread(bool active_state, int long_pulse, int up_pin, int 
   while(run){
     switch(state){
       case IDLE:
-        //std::cout << "IDLE" <<std::endl;
 
         current_active = CustomGPIO::GPIO::waits(gpios, 5, regular_wait_time);
         if(current_active >= 0){
@@ -62,7 +61,7 @@ void Buttons::buttons_thread(bool active_state, int long_pulse, int up_pin, int 
         }
         break;
       case BOUNCES:
-        //std::cout << "BOUNCES" <<std::endl;
+
         usleep(40000); //40 ms
         if(active_state == gpios[current_active].read()){ //Same value, true positive
           state = PIN_ACTIVE;
@@ -71,7 +70,6 @@ void Buttons::buttons_thread(bool active_state, int long_pulse, int up_pin, int 
           state = IDLE;
         break;
       case PIN_ACTIVE:
-        //std::cout << "PIN_ACTIVE" <<std::endl;
 
         aux = CustomGPIO::GPIO::waits(gpios, 5, long_pulse);
         if(aux == -2){  //If timeout
@@ -84,6 +82,7 @@ void Buttons::buttons_thread(bool active_state, int long_pulse, int up_pin, int 
         }
         break;
       case LONG_PULSE:
+
         if(current_active == CustomGPIO::GPIO::waits(gpios, 5, regular_wait_time) &&
             active_state != gpios[current_active].read()){
           buttonsQueue.push((Buttons::BUTTON){(Buttons::BUTTON_SYMBOL)current_active, Buttons::LONG_PULSE_RELEASED});
