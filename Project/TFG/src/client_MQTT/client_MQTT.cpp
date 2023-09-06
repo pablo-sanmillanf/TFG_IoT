@@ -27,13 +27,8 @@ std::atomic_bool MQTT::send_press = true;
 std::atomic_bool MQTT::send_hum = true;
 std::atomic_bool MQTT::send_IAQ = true;
 std::atomic_bool MQTT::send_alt = true;
-std::atomic_bool MQTT::temp_on = true;
-std::atomic_bool MQTT::press_on = true;
-std::atomic_bool MQTT::hum_on = true;
-std::atomic_bool MQTT::IAQ_on = true;
-std::atomic_bool MQTT::alt_on = true;
 
-std::atomic_bool MQTT::continuous_send = true;
+std::atomic_bool MQTT::send = true;
 std::atomic_uint8_t MQTT::send_rate = 10;
 /* Private defines -----------------------------------------------------------*/
 /* Private typedef -----------------------------------------------------------*/
@@ -45,7 +40,7 @@ static int regular_wait_time = 200;
 /* Private function prototypes -----------------------------------------------*/
 static void wait(mqtt::token_ptr token);
 static int read_attributes_state(std::string host, std::string access_token, std::string attributes_topic);
-static bool check_attributes(Json::Value root);
+static void check_attributes(Json::Value root);
 /* Functions -----------------------------------------------------------------*/
 
 /**
@@ -55,20 +50,16 @@ static bool check_attributes(Json::Value root);
  * @param[in] access_token The access token that represents the device in the server.
  * @param[in] telemetry_topic The MQTT topic where the client will publish the info gathered from the sensors.
  * @param[in] attributes_topic The MQTT topic that points to attributes info.
- * @param[in] on_off_callback The function callback that will execute when an on_off variable will change.
  *
  * @return 1 if a on_off variable has changed its state, 0 if not and -1 if error.
  */
 void MQTT::client_mqtt_thread(std::string host, std::string access_token,
-    std::string telemetry_topic, std::string attributes_topic, std::function<void()> on_off_callback){
+    std::string telemetry_topic, std::string attributes_topic){
 
   run = true;
 
   int result = read_attributes_state(host, access_token, attributes_topic);
   if(result != -1){
-
-    if(result==1)
-      on_off_callback();
 
     //Sets JSON floats precision
     Json::StreamWriterBuilder builder;
@@ -87,10 +78,8 @@ void MQTT::client_mqtt_thread(std::string host, std::string access_token,
     cli.set_message_callback([&](mqtt::const_message_ptr msg) {
       Json::Reader reader;
       Json::Value root;
-      std::cout << "MSG_RECEIVED: " << msg->get_payload_str() << std::endl;
       if(reader.parse(msg->get_payload_str(), root))
-        if(check_attributes(root))
-          on_off_callback();
+        check_attributes(root);
     });
 
     std::string *msgs = new std::string[100];
@@ -102,23 +91,23 @@ void MQTT::client_mqtt_thread(std::string host, std::string access_token,
       wait(cli.subscribe(attributes_topic, 1)); // Subscribe to attributes changes.
 
       while(run){
-        if(MQTT::continuous_send){
+        if(MQTT::send){
           std::stringstream sstream;
           Json::Value root;
 
-          if(MQTT::send_temp && MQTT::temp_on){
+          if(MQTT::send_temp){
             root["temperature"] = Json::Value(Measures::bme_data.temperature);
           }
-          if(MQTT::send_press && MQTT::press_on){
+          if(MQTT::send_press){
             root["pressure"] = Json::Value(Measures::bme_data.pressure);
           }
-          if(MQTT::send_hum && MQTT::hum_on){
+          if(MQTT::send_hum){
             root["humidity"] = Json::Value(Measures::bme_data.humidity);
           }
-          if(MQTT::send_IAQ && MQTT::IAQ_on){
+          if(MQTT::send_IAQ){
             root["IAQ"] = Json::Value(Measures::bme_data.iaq);
           }
-          if(MQTT::send_alt && MQTT::alt_on){
+          if(MQTT::send_alt){
             root["altitude"] = Json::Value(Measures::bme_data.altitude);
           }
 
@@ -136,10 +125,8 @@ void MQTT::client_mqtt_thread(std::string host, std::string access_token,
           if(i >= MQTT::send_rate){
             i = 0;
 
-            std::cout << std::endl << "DATA SENT: " << std::endl;
             for(int e = 0; e < MQTT::send_rate; e++){
-              while(!cli.publish(telemetry_topic, msgs[e], 0, false)->wait_for(regular_wait_time) && run);
-              std::cout << "It " << e << ": " << msgs[e] << std::endl;
+              wait(cli.publish(telemetry_topic, msgs[e], 0, false));
             }
           }
           sleep(1);
@@ -152,13 +139,12 @@ void MQTT::client_mqtt_thread(std::string host, std::string access_token,
       }
     }
     catch (const mqtt::exception& exc) {
-      std::cerr << "Error: " << exc.what() << " [" << exc.get_reason_code() << "]" << std::endl;
+      //std::cerr << "Error: " << exc.what() << " [" << exc.get_reason_code() << "]" << std::endl;
       return;
     }
 
     wait(cli.disconnect());
   }
-  std::cout << "MQTT finished" << std::endl;
 }
 
 
@@ -198,7 +184,6 @@ static void wait(mqtt::token_ptr token){
  * @return 1 if a on_off variable has changed its state, 0 if not and -1 if error.
  */
 static int read_attributes_state(std::string host, std::string access_token, std::string attributes_topic){
-  int result = 0;
   bool received = false;
   std::string request_topic = attributes_topic + "/request/1";
   std::string response_topic = attributes_topic + "/response/+";
@@ -208,12 +193,7 @@ static int read_attributes_state(std::string host, std::string access_token, std
                     MQTT::send_hum_mqtt_string + "," +
                     MQTT::send_IAQ_mqtt_string + "," +
                     MQTT::send_alt_mqtt_string + "," +
-                    MQTT::temp_on_mqtt_string + "," +
-                    MQTT::press_on_mqtt_string + "," +
-                    MQTT::hum_on_mqtt_string + "," +
-                    MQTT::IAQ_on_mqtt_string + "," +
-                    MQTT::alt_on_mqtt_string + "," +
-                    MQTT::continuous_send_mqtt_string + "," +
+                    MQTT::send_mqtt_string + "," +
                     MQTT::send_rate_mqtt_string + "\"}";
 
 
@@ -227,10 +207,8 @@ static int read_attributes_state(std::string host, std::string access_token, std
   cli.set_message_callback([&](mqtt::const_message_ptr msg) {
     Json::Reader reader;
     Json::Value root;
-    std::cout << "MSG_RECEIVED: " << msg->get_payload_str() << std::endl;
     if(reader.parse(msg->get_payload_str(), root)){
-      if(check_attributes(root["shared"]))
-        result = 1;
+      check_attributes(root["shared"]);
       received = true;
     }
   });
@@ -239,29 +217,22 @@ static int read_attributes_state(std::string host, std::string access_token, std
     // Connect to the server
     wait(cli.connect(connOpts));
 
-    std::cout << "Connected" << std::endl;
-
     // Subscribe to the response topic and request it publishing in request topic.
     wait(cli.subscribe(attributes_topic, 1));
     wait(cli.publish(request_topic, request_payload.c_str(), request_payload.size()));
 
-    std::cout << "Published" << std::endl;
-
     while(!received && run){
-
-      std::cout << "Wait" << std::endl;
       usleep(1000*regular_wait_time);
     }
-    std::cout << "Waited: " << received << " - " << run << std::endl;
     // Disconnect
     wait(cli.disconnect());
 
   }
   catch (const mqtt::exception& exc) {
-    std::cerr << "Error: " << exc.what() << " [" << exc.get_reason_code() << "]" << std::endl;
+    //std::cerr << "Error: " << exc.what() << " [" << exc.get_reason_code() << "]" << std::endl;
     return -1;
   }
-  return result;
+  return 0;
 }
 
 
@@ -271,11 +242,9 @@ static int read_attributes_state(std::string host, std::string access_token, std
  *
  * @param[in] root The root JSON value.
  *
- * @return true if a on_off variable has changed its state, false if not.
  *
  */
-static bool check_attributes(Json::Value root){
-  bool aux_on, notify = false;
+static void check_attributes(Json::Value root){
   uint8_t aux_rate;
 
   MQTT::send_temp = root.get(MQTT::send_temp_mqtt_string, (bool)MQTT::send_temp).asBool();
@@ -284,38 +253,8 @@ static bool check_attributes(Json::Value root){
   MQTT::send_IAQ = root.get(MQTT::send_IAQ_mqtt_string, (bool)MQTT::send_IAQ).asBool();
   MQTT::send_alt = root.get(MQTT::send_alt_mqtt_string, (bool)MQTT::send_alt).asBool();
 
-  aux_on = root.get(MQTT::temp_on_mqtt_string, (bool)MQTT::temp_on).asBool();
-  if(MQTT::temp_on != aux_on){
-    MQTT::temp_on = aux_on;
-    notify = true;
-  }
-
-  aux_on = root.get(MQTT::press_on_mqtt_string, (bool)MQTT::press_on).asBool();
-  if(MQTT::press_on != aux_on){
-    MQTT::press_on = aux_on;
-    notify = true;
-  }
-
-  aux_on = root.get(MQTT::hum_on_mqtt_string, (bool)MQTT::hum_on).asBool();
-  if(MQTT::hum_on != aux_on){
-    MQTT::hum_on = aux_on;
-    notify = true;
-  }
-
-  aux_on = root.get(MQTT::IAQ_on_mqtt_string, (bool)MQTT::IAQ_on).asBool();
-  if(MQTT::IAQ_on != aux_on){
-    MQTT::IAQ_on = aux_on;
-    notify = true;
-  }
-
-  aux_on = root.get(MQTT::alt_on_mqtt_string, (bool)MQTT::alt_on).asBool();
-  if(MQTT::alt_on != aux_on){
-    MQTT::alt_on = aux_on;
-    notify = true;
-  }
-
-  MQTT::continuous_send = root.get(MQTT::continuous_send_mqtt_string, (bool)MQTT::continuous_send).asBool();
-  if(MQTT::continuous_send)
+  MQTT::send = root.get(MQTT::send_mqtt_string, (bool)MQTT::send).asBool();
+  if(MQTT::send)
     cond.notify_one();
 
   aux_rate = root.get("sendRate", (uint8_t)MQTT::send_rate).asUInt();
@@ -325,7 +264,6 @@ static bool check_attributes(Json::Value root){
     aux_rate = 100;
   MQTT::send_rate = aux_rate;
 
-  return notify;
 }
 
 

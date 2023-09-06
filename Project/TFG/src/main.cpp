@@ -1,101 +1,3 @@
-#define __CODE__
-
-#ifndef __CODE__
-
-/* C++ reimplementation of the gpiofind tool. */
-
-#include <gpiod.hpp>
-
-#include <cstdlib>
-#include <iostream>
-
-int main(int argc, char **argv)
-{
-  if (argc != 2) {
-    ::std::cerr << "usage: " << argv[0] << " <line name>" << ::std::endl;
-    return EXIT_FAILURE;
-  }
-
-  ::gpiod::line line = ::gpiod::find_line(argv[1]);
-  if (!line)
-    return EXIT_FAILURE;
-
-  ::std::cout << line.get_chip().name() << " " << line.offset() << ::std::endl;
-
-  return EXIT_SUCCESS;
-}
-
-
-#endif
-
-
-
-
-#define __BUTTON_CODE__
-
-#ifndef __BUTTON_CODE__
-
-/***
- * EXAMPLE OF MULTITHREAD WITH BUTTONS CLASS
- */
-
-#include <thread>
-#include "buttons/buttons.h"
-#include <iostream>
-#include <unistd.h>
-#include <gpiod.hpp>
-
-
-void printer_thread(){
-  Buttons::BUTTON data;
-  std::string type;
-  for(;;){
-    data = Buttons::buttonsQueue.pop();
-    if(data.type == Buttons::LONG_PULSE)
-      type = "LONG";
-    else if(data.type == Buttons::LONG_PULSE_RELEASED)
-      type = "RELEASED";
-    else
-      type = "SHORT";
-
-    switch(data.symbol){
-      case Buttons::UP:
-        std::cout << "UP " << type << " Pulse" << std::endl;
-        break;
-      case Buttons::DOWN:
-        std::cout << "DOWN " << type << " Pulse" << std::endl;
-        break;
-      case Buttons::LEFT:
-        std::cout << "LEFT " << type << " Pulse" << std::endl;
-        break;
-      case Buttons::RIGHT:
-        std::cout << "RIGHT " << type << " Pulse" << std::endl;
-        break;
-      case Buttons::CENTER:
-        std::cout << "CENTER " << type << " Pulse" << std::endl;
-        break;
-    }
-  }
-}
-
-int main(){
-  std::thread first (Buttons::buttons_thread, 0, 2000, 25, 7, 24, 18, 23);
-
-  usleep(100000);
-  std::thread third (printer_thread);  // spawn new thread that calls printer_thread()
-
-
-  std::cout << "Main wait\n" << std::endl;
-  // synchronize threads:
-  first.join();                // pauses until first finishes
-  third.join();               // pauses until third finishes
-  return 0;
-}
-#endif
-
-//#define MAIN
-
-#ifndef MAIN
 #include <iostream>
 #include <stdio.h>
 #include <stdint.h>
@@ -111,6 +13,8 @@ int main(){
 #include <ctime>
 #include <sstream>
 #include <csignal>
+
+//#define __BUILDROOT_CONF__
 
 void finisher(int signal);
 
@@ -155,8 +59,14 @@ const int min_temp = -10;
 const int max_temp = 50;
 
 const std::string timezone_file_path = "/etc/timezone";
+
+#ifdef __BUILDROOT_CONF__
 const std::string sym_link_timezone_path = "/etc/TZ";
 const std::string tzs_directory_path = "/usr/share/zoneinfo/uclibc/";
+#else
+const std::string sym_link_timezone_path = "/etc/localtime";
+const std::string tzs_directory_path = "/usr/share/zoneinfo/";
+#endif
 
 const std::string networks_file_path = "/etc/wpa_supplicant.conf";
 
@@ -174,7 +84,13 @@ std::atomic_bool run = true;
 
 
 int main() {
+
   std::signal(SIGINT, finisher);
+
+  TFTDisplay::start();
+
+  TFTDisplay::print_centered_title("Iniciando...", 2);
+  std::this_thread::sleep_for(std::chrono::seconds(2));
 
   Storage::AppDataStorage storage;
 
@@ -186,20 +102,11 @@ int main() {
 
   meas.start_measures();
 
-  auto fn = [&]() {
-    std::cout << "ON_OFF changed: \n\tTemp: " << MQTT::temp_on
-                                << "\tPress: " << MQTT::press_on
-                                << "\tHum: " << MQTT::hum_on
-                                << "\tIAQ: " << MQTT::IAQ_on
-                                << "\tAlt: " << MQTT::alt_on << std::endl;
-  };
   std::thread buttons_thread(Buttons::buttons_thread, 0, 500, 25, 7, 24, 18, 23);
-  std::thread mqtt_thread(MQTT::client_mqtt_thread, host_ip, mqtt_token, tb_telemetry_topic, tb_attributes_topic, fn);
+  std::thread mqtt_thread(MQTT::client_mqtt_thread, host_ip, mqtt_token, tb_telemetry_topic, tb_attributes_topic);
 
 
   enum {TIME, TEMP, HUM, PRESS, ALT, IAQ, CONF} state;
-
-  TFTDisplay::start();
 
   int cnt;  //This cnt will be used to count the seconds per menu in the main carousel and to count the conf menu
             //where the user is
@@ -443,7 +350,7 @@ int main() {
                   MQTT::client_mqtt_thread_finisher();
                   mqtt_thread.join();
                   mqtt_thread = std::thread(
-                      MQTT::client_mqtt_thread, host_ip, mqtt_token, tb_telemetry_topic, tb_attributes_topic, fn);
+                      MQTT::client_mqtt_thread, host_ip, mqtt_token, tb_telemetry_topic, tb_attributes_topic);
                 }
                 break;
               }
@@ -494,7 +401,7 @@ int main() {
                   MQTT::client_mqtt_thread_finisher();
                   mqtt_thread.join();
                   mqtt_thread = std::thread(
-                      MQTT::client_mqtt_thread, host_ip, mqtt_token, tb_telemetry_topic, tb_attributes_topic, fn);
+                      MQTT::client_mqtt_thread, host_ip, mqtt_token, tb_telemetry_topic, tb_attributes_topic);
                 }
                 break;
               }
@@ -521,7 +428,7 @@ int main() {
                   },
                   [](std::string text, int selected, bool up_ndown) {
                     float offset = std::atof(text.c_str());
-                    float factor;
+                    float factor = 1;
 
                     //We are assuming that the number has the format 0.00
                     switch(selected){
@@ -582,7 +489,7 @@ int main() {
               {
                 TFTDisplay::print_centered_title("Listando redes...", 1);
                 std::vector<std::string> avail_nets =
-                    exec_cmd_and_get_lines("iwlist wlan0 scan | grep ESSID | grep -o '\".*\"' | tr -d '\"'");
+                    exec_cmd_and_get_lines("iw dev wlan0 scan | sed -n 's/\\s*SSID:\\s//p' | sed -r '/^\\s*$/d'");
                 uint16_t avail_net_index = text_list_menu("Red WiFi", avail_nets, 1, 0);
 
 
@@ -674,13 +581,17 @@ int main() {
                   TFTDisplay::print_centered_title("Apagando...", 2);
                   std::this_thread::sleep_for(std::chrono::seconds(1));
                   TFTDisplay::print_centered_title(" ", 1);
+                  run = false;
                   system("poweroff");
                 }
                 break;
               }
             }
-            std::vector<std::string> sbv(conf_menus.begin() + cnt, conf_menus.begin() + cnt + TFTDisplay::max_conf_menus);
-            TFTDisplay::print_conf_menu(true, true, sbv, top_border_conf_menu, -1);
+            if(run){
+              std::vector<std::string> sbv(conf_menus.begin() + cnt,
+                  conf_menus.begin() + cnt + TFTDisplay::max_conf_menus);
+              TFTDisplay::print_conf_menu(true, true, sbv, top_border_conf_menu, -1);
+            }
           }
           else if(data.symbol == Buttons::LEFT){
             init_time_fn();
@@ -987,7 +898,7 @@ int text_list_menu(std::string title, std::vector<std::string> list, uint32_t lo
     return Buttons::buttonsQueue.size() != 0;
   };
 
-  index = (index + TFTDisplay::max_text_list_elements - TFTDisplay::central_text_list_element) % TFTDisplay::max_text_list_elements;
+  index = (index + list.size() - TFTDisplay::central_text_list_element) % list.size();
 
   std::vector<std::string> sublist;
   sublist.resize(TFTDisplay::max_text_list_elements);
@@ -1160,4 +1071,3 @@ void pulse_action(Buttons::BUTTON previous_pulsed, uint32_t us_cycle, std::funct
     }while(pressed);
 }
 
-#endif
