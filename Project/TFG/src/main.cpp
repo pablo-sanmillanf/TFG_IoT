@@ -14,7 +14,7 @@
 #include <sstream>
 #include <csignal>
 
-//#define __BUILDROOT_CONF__
+#define __BUILDROOT_CONF__
 
 void finisher(int signal);
 
