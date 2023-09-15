@@ -24,8 +24,8 @@ TFG                  ->  target/root/
 wpa_supplicant.conf  ->  target/etc/
 ```
 
-Afterwards, inside the "**rpi-firmware**" folder in the "output" directory you must add all the files that you want to include in the boot partition. In this case, the files for this embedded system are in the "**Boot_Files**" directory of this repository, and should be added to the "**rpi-firmware**" folder as shown below:
+Afterwards, inside the path "**output/images/rpi-firmware/**" you must add all the files that you want to include in the boot partition. In this case, the files for this embedded system are in the "**Boot_Files**" directory of this repository, and should be added to the "**rpi-firmware**" folder as shown below:
 ```
-config.txt  ->  rpi-firmware/
+config.txt  ->  images/rpi-firmware/
 ```
 Finally, the first command of this section must be executed again to save the configurations in the resulting image. This image will be located in the path "**output/images/sdcard.img**".
