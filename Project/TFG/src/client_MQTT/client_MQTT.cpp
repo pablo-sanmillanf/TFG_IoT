@@ -78,8 +78,9 @@ void MQTT::client_mqtt_thread(std::string host, std::string access_token,
     cli.set_message_callback([&](mqtt::const_message_ptr msg) {
       Json::Reader reader;
       Json::Value root;
-      if(reader.parse(msg->get_payload_str(), root))
+      if(reader.parse(msg->get_payload_str(), root)){
         check_attributes(root);
+      }
     });
 
     std::string *msgs = new std::string[100];
@@ -257,7 +258,7 @@ static void check_attributes(Json::Value root){
   if(MQTT::send)
     cond.notify_one();
 
-  aux_rate = root.get("sendRate", (uint8_t)MQTT::send_rate).asUInt();
+  aux_rate = root.get(MQTT::send_rate_mqtt_string, (uint8_t)MQTT::send_rate).asUInt();
   if(aux_rate <= 0)
     aux_rate = 1;
   else if(aux_rate > 100)

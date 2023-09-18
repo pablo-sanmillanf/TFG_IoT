@@ -394,6 +394,8 @@ int main() {
                     }
                     return text;
                   });
+                if(new_mqtt_token.back() == ' ')
+                  new_mqtt_token.pop_back();
                 if(mqtt_token.compare(new_mqtt_token) != 0 && yes_no_choice_menu("Guardar?", 2)){
                   mqtt_token = new_mqtt_token;
                   storage.write_data_param(MQTT_TOKEN_KEY, mqtt_token);
@@ -535,6 +537,8 @@ int main() {
                       }
                       return text;
                     });
+                  if(new_psw.back() == ' ')
+                    new_psw.pop_back();
                   if(new_psw.size() < 8 || new_psw.size() > 63){
                     TFTDisplay::print_centered_title("La clave debe\ntener entre\n8 y 63\ncaracteres.", 1);
                     std::this_thread::sleep_for(std::chrono::seconds(2));
