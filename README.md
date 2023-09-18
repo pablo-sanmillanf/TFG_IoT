@@ -51,3 +51,34 @@ In red the connections that can be made to access the system through a command i
 <br/>
 <i>Project scenario</i>
 </p>
+  
+</br>
+
+## Description of the application
+
+The application has been structured in a series of windows and menus that will be displayed on the LCD screen and through which the user will be able to move using the joystick. Two groups of these windows can be distinguished: the windows for displaying system measurements and data, and the windows for configuring the system itself.
+The first group is composed of six windows with which the user can display the system time, temperature, relative humidity, atmospheric pressure, altitude above sea level and the IAQ index. Both the temperature, humidity and IAQ windows change the color of the central part of the screen and the filling of the icon bar according to the value of the associated magnitude.  
+In order to move between these screens, the user can use the "right" or "left" gestures of the joystick to move to the next or previous window, respectively. This behavior is cyclic, so that the user can move from the last window to the first and vice versa. In addition, the system has been designed in such a way that, after an inactivity period of five seconds, the application automatically switches to the next window.
+
+<p align="center">
+<img width="750" align="center" src="https://github.com/pablo-sanmillanf/TFG_IoT/assets/101637076/8525b6c5-b298-48db-9120-44ce81457d55">
+<br/>
+<i>Main windows</i>
+</p>
+Also, it can be seen how in the upper part of all the windows there is an indicator of the window in which the user is, helping him in this way in the location of the rest of the windows. On the other hand, there is also an indicator at the bottom of all the windows that indicates that after pressing the "down" gesture of the joystick, the windows and configuration menus can be accessed.  
+On the other hand, in the case of the group of menus and system configuration windows to be accessed with the joystick "down" gesture, it is formed by a main window, in which all the possible system configurations are arranged in a vertical list, and a series of windows associated with each of these configurations. To move through this vertical list, the "up" and "down" gestures of the joystick are used. Once the cursor has been placed on the desired menu, the "right" gesture can be used to access the windows associated with that configuration. On the other hand, if you want to return to the other group of windows detailed above, with the "left" gesture from any of the menus, you will return to the system time window.
+
+<p align="center">
+<img width="400" align="center" src="https://github.com/pablo-sanmillanf/TFG_IoT/assets/101637076/1cfd66e8-d7aa-444d-9306-ef0f3eb17e9f">
+<br/>
+<i>Conf window</i>
+</p>
+
+Focusing on the specific configurations that can be made with this group of windows, there are seven possible configurations:
+ - "**Carrusel**". With this configuration, you can decide whether or not, after five seconds of inactivity in the main windows, you want to move automatically to the next window.
+ - "**IP Broker**". Thanks to this configuration you can choose the IP address of the MQTT broker where the measurements obtained by the sensors will be published. This broker must be connected to the same Wifi network as the system, so if this is not the case or if the weather station is not connected to the Internet, this utility will not work. It should be noted that the system has no way to visually indicate to the user whether or not it is connected to the internet and whether or not it is connected to the broker.
+ - "**Token MQTT**". This setting will allow you to choose the token to be used for system authentication to the MQTT broker. This token must have been previously provided by the broker to enable MQTT communications.
+ - "**Temp Offset**". With this setting it is possible to set an offset in the temperature measurements. The idea of this offset is to be able to compensate for temperature disturbances caused by self-heating of the system, so that the final result is closer to reality. Since these disturbances are always additive, the chosen value will always be subtracted from the temperature obtained from the sensor. This offset may have a precision of up to two decimal places.
+ - "**Hora local**". Within this configuration, the user will be able to choose the time zone of the system.
+ - "**Nuevo WiFi**". With this configuration, new WiFi networks can be added to the list of networks recognized by the system, choosing their identifier from those reachable by the system and then entering their password.
+ - "**Apagar**".This will shut down the system completely.
